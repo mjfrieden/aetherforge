@@ -1,0 +1,5 @@
+AUTH_SECRET=replace-with-32-random-bytes-base64url-or-long-random-string
+TOKEN_ENCRYPTION_KEY=replace-with-base64-encoded-32-byte-key
+GLOBAL_LIVE_TRADING_ENABLED=false
+APP_ENV=development
+COOKIE_SECURE=false

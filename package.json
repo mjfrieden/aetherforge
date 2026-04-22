@@ -1,0 +1,18 @@
+{
+  "name": "aetherforge",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "A multi-user cloud-temple trading game with per-user AI training and Tradier sandbox-first broker integration.",
+  "scripts": {
+    "dev": "wrangler pages dev public --port 8787",
+    "test": "node --test",
+    "migrate:local": "wrangler d1 execute aetherforge-db --local --file migrations/0001_init.sql",
+    "migrate:remote": "wrangler d1 execute aetherforge-db --remote --file migrations/0001_init.sql",
+    "deploy": "wrangler pages deploy public --project-name aetherforge"
+  },
+  "devDependencies": {
+    "playwright": "^1.56.1",
+    "wrangler": "^4.84.1"
+  }
+}

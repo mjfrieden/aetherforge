@@ -1,0 +1,20 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "aetherforge",
+  "compatibility_date": "2026-04-21",
+  "pages_build_output_dir": "public",
+  "vars": {
+    "APP_ENV": "production",
+    "GLOBAL_LIVE_TRADING_ENABLED": "false",
+    "MAX_ORDER_QUANTITY": "10",
+    "MAX_NOTIONAL_USD": "5000",
+    "SESSION_TTL_SECONDS": "43200"
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "aetherforge-db",
+      "database_id": "3e6dcb20-9d4f-47ca-b249-f9215748cd1f"
+    }
+  ]
+}

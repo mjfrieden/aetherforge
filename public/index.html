@@ -1,0 +1,193 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Aetherforge</title>
+    <link rel="stylesheet" href="/styles.css">
+  </head>
+  <body>
+    <main class="shell">
+      <section class="game-stage" aria-label="Aetherforge sky arena">
+        <canvas id="game" width="1280" height="720" aria-label="Cloud temple trading game"></canvas>
+        <div class="top-hud">
+          <div>
+            <p class="eyebrow">Aetherforge</p>
+            <h1>Olympian Oracle</h1>
+          </div>
+          <div class="hud-pill" id="session-label">Signed out</div>
+          <button class="icon-button" id="fullscreen-btn" type="button" title="Fullscreen" aria-label="Fullscreen">
+            <span>F</span>
+          </button>
+        </div>
+        <div class="bottom-hud">
+          <button id="start-btn" type="button">Start Run</button>
+          <button id="pause-btn" type="button">Pause</button>
+          <button id="save-btn" type="button">Save</button>
+          <div class="hud-pill" id="oracle-status">Oracle idle</div>
+        </div>
+      </section>
+
+      <aside class="control-panel" aria-label="Account and trading controls">
+        <section class="panel-section" id="auth-panel">
+          <p class="eyebrow">Gate</p>
+          <h2>Enter the sky citadel</h2>
+          <form id="auth-form" autocomplete="on">
+            <label>
+              Email
+              <input id="auth-email" name="email" type="email" autocomplete="email" required>
+            </label>
+            <label>
+              Password
+              <input id="auth-password" name="password" type="password" autocomplete="current-password" required>
+            </label>
+            <label id="display-name-row">
+              Display name
+              <input id="display-name" name="display_name" type="text" autocomplete="nickname" maxlength="40">
+            </label>
+            <div class="segmented" role="group" aria-label="Auth mode">
+              <button id="login-tab" type="button" class="active">Login</button>
+              <button id="register-tab" type="button">Register</button>
+            </div>
+            <button type="submit" id="auth-submit">Login</button>
+          </form>
+          <p class="status" id="auth-status"></p>
+        </section>
+
+        <section class="panel-section hidden" id="account-panel">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">Account</p>
+              <h2 id="player-name">Cloud initiate</h2>
+            </div>
+            <button id="logout-btn" type="button">Logout</button>
+          </div>
+          <dl class="stats-grid">
+            <div><dt>Level</dt><dd id="level-value">1</dd></div>
+            <div><dt>XP</dt><dd id="xp-value">0</dd></div>
+            <div><dt>Samples</dt><dd id="sample-value">0</dd></div>
+            <div><dt>Rank</dt><dd id="rank-value">-</dd></div>
+          </dl>
+        </section>
+
+        <section class="panel-section hidden" id="oracle-panel">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">Oracle AI</p>
+              <h2>Train and forecast</h2>
+            </div>
+            <button id="train-btn" type="button">Train</button>
+          </div>
+          <div class="meter-list" id="essence-list"></div>
+          <div class="forecast-grid">
+            <label>
+              Symbol
+              <input id="predict-symbol" value="SPY" maxlength="12">
+            </label>
+            <button id="predict-btn" type="button">Forecast</button>
+          </div>
+          <p class="status" id="model-status">No trained model yet.</p>
+        </section>
+
+        <section class="panel-section hidden" id="tradier-panel">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">Tradier Vault</p>
+              <h2>Per-user broker link</h2>
+            </div>
+            <span class="mode-badge" id="broker-mode">Disconnected</span>
+          </div>
+          <form id="tradier-form">
+            <label>
+              Access token
+              <input id="tradier-token" type="password" autocomplete="off" placeholder="Stored encrypted server-side">
+            </label>
+            <label>
+              Account ID
+              <input id="tradier-account" autocomplete="off">
+            </label>
+            <label>
+              Mode
+              <select id="tradier-mode">
+                <option value="sandbox">Sandbox</option>
+                <option value="live">Live</option>
+              </select>
+            </label>
+            <button type="submit">Save broker link</button>
+          </form>
+          <p class="status" id="tradier-status">Sandbox first. Live placement is deployment-gated.</p>
+        </section>
+
+        <section class="panel-section hidden" id="order-panel">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">Order Altar</p>
+              <h2>Preview before trade</h2>
+            </div>
+          </div>
+          <form id="order-form">
+            <div class="form-row">
+              <label>
+                Asset
+                <select id="order-asset">
+                  <option value="equity">Stock</option>
+                  <option value="option">Option</option>
+                </select>
+              </label>
+              <label>
+                Side
+                <select id="order-side">
+                  <option value="buy">Buy</option>
+                  <option value="sell">Sell</option>
+                </select>
+              </label>
+            </div>
+            <div class="form-row">
+              <label>
+                Symbol
+                <input id="order-symbol" value="SPY" maxlength="24">
+              </label>
+              <label>
+                Quantity
+                <input id="order-quantity" type="number" min="1" max="10" value="1">
+              </label>
+            </div>
+            <label id="option-symbol-row" class="hidden">
+              Option symbol
+              <input id="order-option-symbol" maxlength="24" placeholder="SPY260515C00500000">
+            </label>
+            <div class="form-row">
+              <label>
+                Type
+                <select id="order-type">
+                  <option value="limit">Limit</option>
+                  <option value="market">Market preview</option>
+                </select>
+              </label>
+              <label>
+                Limit
+                <input id="order-price" type="number" min="0.01" step="0.01" value="1.00">
+              </label>
+            </div>
+            <button type="submit">Preview</button>
+            <label class="confirm-row">
+              Confirmation phrase
+              <input id="order-confirm" autocomplete="off" placeholder="PLACE PAPER ORDER">
+            </label>
+            <button id="place-order-btn" type="button">Place gated order</button>
+          </form>
+          <p class="status" id="order-status">No order preview yet.</p>
+        </section>
+
+        <section class="panel-section hidden" id="leaderboard-panel">
+          <p class="eyebrow">Council</p>
+          <h2>Cloud ranks</h2>
+          <ol id="leaderboard"></ol>
+        </section>
+      </aside>
+    </main>
+
+    <p class="legal">Educational simulation. Not investment advice. Real brokerage actions require your own Tradier credentials and explicit confirmation.</p>
+    <script src="/app.js" type="module"></script>
+  </body>
+</html>
