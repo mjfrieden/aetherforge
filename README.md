@@ -4,6 +4,10 @@ Aetherforge is a multi-user browser game where players collect market "essence,"
 
 The visual direction is original: open-air cloud temples, Greek-god grandeur, glider traversal, gold-laurel UI, and bright sky exploration. It is inspired by adventurous open-world readability without using any copyrighted game assets.
 
+Live app: https://aetherforge-a5i.pages.dev
+
+Public GitHub repo: https://github.com/mjfrieden/aetherforge
+
 ## What This Builds From
 
 I evaluated the sibling projects:

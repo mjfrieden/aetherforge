@@ -14,11 +14,13 @@ Original prompt: Please evaluate our current Orographic project and Cirrus proje
 - Installed dependencies and passed the initial Node unit tests.
 - Created Cloudflare D1 database `aetherforge-db` with id `3e6dcb20-9d4f-47ca-b249-f9215748cd1f` and bound it as `DB`.
 - Ran local signed-out and authenticated Playwright smoke tests. Tightened the first pickup placement and HUD refresh after verifying the first authenticated run.
+- Ran desktop and mobile Playwright checks with zero console errors.
+- Created public GitHub repo: https://github.com/mjfrieden/aetherforge
+- Created Cloudflare Pages project `aetherforge`, set generated production `AUTH_SECRET` and `TOKEN_ENCRYPTION_KEY`, deployed, and smoke-tested production at https://aetherforge-a5i.pages.dev
+- Production smoke test passed registration, model training, and broker preview gating. Broker preview correctly returns `Tradier is not connected for this user` until a user stores their own Tradier account.
 
 TODO:
 
-- Run local and remote D1 migrations.
-- Run local Wrangler Pages dev with temporary local secrets.
-- Playtest with the web-game Playwright client and inspect screenshots.
-- Push to a public GitHub repo.
-- Deploy to Cloudflare Pages and set production secrets.
+- Optional: connect the Cloudflare Pages project to the GitHub repo in the Cloudflare dashboard if continuous deployment from `main` is desired instead of direct Wrangler uploads.
+- Optional: add Tradier OAuth/partner flow if Tradier grants the app a multi-user OAuth integration. Current implementation supports per-user personal/sandbox token storage.
+- Optional: add richer historical data import for user-trained models beyond game-collected sample rows.
