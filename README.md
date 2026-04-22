@@ -2,7 +2,7 @@
 
 Aetherforge is a multi-user browser game where players collect market "essence," train a personal oracle model, forecast stock/option setups, and route Tradier previews through a secure server-side broker bridge.
 
-The visual direction is original: open-air cloud temples, Greek-god grandeur, glider traversal, gold-laurel UI, and bright sky exploration. It is inspired by adventurous open-world readability without using any copyrighted game assets.
+The v2 game is a Pokemon-like stock-options battler built with Phaser, Vite, and TypeScript. Players train option spirits, battle market regimes, collect training samples, and use an oracle model before previewing any broker action.
 
 Live app: https://aetherforge-a5i.pages.dev
 
@@ -70,18 +70,19 @@ npm run migrate:local
 Start the app:
 
 ```bash
-npm run dev
+npm run dev:pages
 ```
 
 Open the local Pages URL shown by Wrangler.
 
 ## Controls
 
-- `WASD` or arrow keys: glide
-- `Space`: dash
-- `F`: fullscreen
+- `/login`: dedicated login screen
+- `/register`: dedicated account creation screen
+- `/game`: main creature-battle interface
+- `F`: fullscreen during battle
 
-Collect essence shards, avoid storm glyphs, train the oracle, then forecast a symbol. Broker preview and placement controls are available after login and Tradier connection.
+Choose moves, defeat market regimes, train the oracle, then forecast a symbol. Broker preview and placement controls are available after login and Tradier connection.
 
 ## Deploy
 

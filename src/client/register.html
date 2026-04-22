@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Register | Aetherforge</title>
+    <link rel="stylesheet" href="/src/styles.css">
+  </head>
+  <body class="auth-body">
+    <main class="auth-shell">
+      <section class="auth-art auth-art-register" aria-label="Aetherforge registration art">
+        <p class="eyebrow">Aetherforge</p>
+        <h1>Choose Your First Oracle</h1>
+        <p>Start with Delta Hawk, Theta Tortoise, Vega Wisp, or Gamma Hydra.</p>
+      </section>
+      <section class="auth-panel" aria-label="Registration form">
+        <p class="eyebrow">Register</p>
+        <h2>New Trainer</h2>
+        <form id="auth-form" data-mode="register" autocomplete="on">
+          <label>
+            Display name
+            <input id="display-name" name="display_name" type="text" autocomplete="nickname" maxlength="40" required>
+          </label>
+          <label>
+            Email
+            <input id="email" name="email" type="email" autocomplete="email" required>
+          </label>
+          <label>
+            Password
+            <input id="password" name="password" type="password" autocomplete="new-password" required>
+          </label>
+          <button type="submit">Create Account</button>
+        </form>
+        <p class="status" id="auth-status"></p>
+        <p class="auth-switch">Already have a team? <a href="/login">Login</a></p>
+      </section>
+    </main>
+    <script type="module" src="/src/auth-page.ts"></script>
+  </body>
+</html>

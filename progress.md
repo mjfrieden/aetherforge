@@ -24,3 +24,12 @@ TODO:
 - Optional: connect the Cloudflare Pages project to the GitHub repo in the Cloudflare dashboard if continuous deployment from `main` is desired instead of direct Wrangler uploads.
 - Optional: add Tradier OAuth/partner flow if Tradier grants the app a multi-user OAuth integration. Current implementation supports per-user personal/sandbox token storage.
 - Optional: add richer historical data import for user-trained models beyond game-collected sample rows.
+
+## 2026-04-22
+
+- User rejected the first canvas game direction and asked for a Pokemon-like stock-options game.
+- User also requested a dedicated login page separate from the main game UI and asked whether there is a better platform direction than Cloudflare.
+- Decision: rebuild the frontend as a Phaser 3 + Vite + TypeScript browser game, with standalone `/login`, `/register`, and `/game` pages.
+- Preserved the existing secure Cloudflare Pages Functions backend for this pass so auth/session/CSRF/encrypted Tradier-token protections do not regress while the game is overhauled.
+- Used two image-generation calls only: one reusable cloud-colosseum battle background and one reusable four-creature sprite sheet. Copied both into `src/client/assets/generated/`.
+- Added `docs/platform-roadmap.md` to document the recommended Vercel/Supabase future path and the practical current boundary.

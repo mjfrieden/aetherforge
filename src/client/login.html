@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Login | Aetherforge</title>
+    <link rel="stylesheet" href="/src/styles.css">
+  </head>
+  <body class="auth-body">
+    <main class="auth-shell">
+      <section class="auth-art" aria-label="Aetherforge login art">
+        <p class="eyebrow">Aetherforge</p>
+        <h1>Return To The League</h1>
+        <p>Pick your option spirit, read the tape, and challenge the next market regime.</p>
+      </section>
+      <section class="auth-panel" aria-label="Login form">
+        <p class="eyebrow">Login</p>
+        <h2>Trainer Gate</h2>
+        <form id="auth-form" data-mode="login" autocomplete="on">
+          <label>
+            Email
+            <input id="email" name="email" type="email" autocomplete="email" required>
+          </label>
+          <label>
+            Password
+            <input id="password" name="password" type="password" autocomplete="current-password" required>
+          </label>
+          <button type="submit">Login</button>
+        </form>
+        <p class="status" id="auth-status"></p>
+        <p class="auth-switch">New trainer? <a href="/register">Create an account</a></p>
+      </section>
+    </main>
+    <script type="module" src="/src/auth-page.ts"></script>
+  </body>
+</html>

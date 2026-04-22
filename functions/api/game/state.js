@@ -5,9 +5,22 @@ import { requireSameOriginAndCsrf } from "../../_lib/security.js";
 
 function sanitizeGameState(value) {
   const state = value && typeof value === "object" ? value : {};
+  const roster = Array.isArray(state.roster)
+    ? state.roster.slice(0, 8).map((creature) => ({
+        id: String(creature?.id || "").slice(0, 32),
+        name: String(creature?.name || "").slice(0, 48),
+        archetype: String(creature?.archetype || "").slice(0, 32),
+        level: Math.max(1, Math.min(99, Number.parseInt(String(creature?.level || 1), 10) || 1)),
+        xp: Math.max(0, Math.min(100000, Number.parseInt(String(creature?.xp || 0), 10) || 0)),
+        maxHp: Math.max(40, Math.min(500, Number.parseInt(String(creature?.maxHp || 100), 10) || 100)),
+      }))
+    : [];
   return {
     level: Math.max(1, Math.min(99, Number.parseInt(String(state.level || 1), 10) || 1)),
     xp: Math.max(0, Math.min(1000000, Number.parseInt(String(state.xp || 0), 10) || 0)),
+    wins: Math.max(0, Math.min(100000, Number.parseInt(String(state.wins || 0), 10) || 0)),
+    activeCreatureId: String(state.activeCreatureId || "").slice(0, 32),
+    roster,
     essence: {
       momentum: Math.max(0, Math.min(999, Number(state.essence?.momentum || 0))),
       volatility: Math.max(0, Math.min(999, Number(state.essence?.volatility || 0))),
@@ -15,7 +28,7 @@ function sanitizeGameState(value) {
       liquidity: Math.max(0, Math.min(999, Number(state.essence?.liquidity || 0))),
       iv_rank: Math.max(0, Math.min(999, Number(state.essence?.iv_rank || 0))),
     },
-    samples: Array.isArray(state.samples) ? state.samples.slice(-80) : [],
+    samples: Array.isArray(state.samples) ? state.samples.slice(-120) : [],
     last_symbol: String(state.last_symbol || "SPY").toUpperCase().slice(0, 12),
   };
 }
