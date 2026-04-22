@@ -2,13 +2,14 @@
 
 ## Recommendation
 
-Aetherforge should be a Phaser/Vite browser game first. The game code is now host-agnostic: Vite builds static files into `public/`, while secure server routes remain isolated from the browser.
+Aetherforge should be a Phaser/Vite browser MMO-style game first. The game code is host-agnostic: Vite builds static files into `public/`, while secure server routes remain isolated from the browser.
 
 The ideal long-term product stack is:
 
-- Phaser 3 + TypeScript + Vite for the game client.
+- Phaser 3 + TypeScript + Vite for the explorable game client.
 - Dedicated `/login`, `/register`, and `/game` pages.
 - Supabase Auth + Postgres for multi-user identity and game state.
+- A real-time presence layer for true MMO behavior; Cloudflare Durable Objects or Supabase Realtime are both reasonable candidates.
 - Server-side Tradier routes for broker previews and gated order placement.
 - Vercel or another first-class Vite host for the frontend.
 
@@ -18,7 +19,7 @@ This repo already had working Cloudflare Pages Functions for auth, encrypted per
 
 Moving fully to Supabase requires creating a Supabase project, deciding auth policies, setting Row Level Security, and migrating existing D1 data. Until those credentials and ownership choices exist, the safe move is:
 
-1. Ship the Phaser game overhaul on the existing secure backend.
+1. Ship the Phaser MMO-style game overhaul on the existing secure backend.
 2. Keep the frontend build portable.
 3. Migrate backend storage/auth to Supabase in a dedicated pass.
 

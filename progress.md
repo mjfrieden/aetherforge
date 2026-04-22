@@ -33,3 +33,8 @@ TODO:
 - Preserved the existing secure Cloudflare Pages Functions backend for this pass so auth/session/CSRF/encrypted Tradier-token protections do not regress while the game is overhauled.
 - Used two image-generation calls only: one reusable cloud-colosseum battle background and one reusable four-creature sprite sheet. Copied both into `src/client/assets/generated/`.
 - Added `docs/platform-roadmap.md` to document the recommended Vercel/Supabase future path and the practical current boundary.
+- User clarified that the desired direction is MMORPG-like: a world where AI-assisted short-term single call/put option trading is an in-game profession rather than the main battle screen.
+- Reworked `/game` into Cloudspire Exchange, an explorable Phaser hub with WASD/arrow movement, signal wisps, NPC-like stations, leaderboard ghosts, oracle training, market scanning, and a single-leg Tradier preview shrine.
+- Preserved the generated art budget by reusing the existing arena background and creature sheet as world/companion assets; no new image-generation calls were used.
+- Local authenticated Playwright pass created a new user, loaded the world canvas, moved in the hub, ran six paper contract drills, trained the oracle, scanned SPY, recorded a call outcome, and reported zero console/HTTP errors.
+- Mobile Playwright screenshot at 390x844 loaded the world and stacked the HUD without console errors.

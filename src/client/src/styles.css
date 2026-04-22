@@ -217,23 +217,26 @@ h2 {
 
 .game-body {
   overflow-x: hidden;
+  background:
+    linear-gradient(180deg, rgba(202, 235, 240, 0.8), rgba(248, 250, 235, 0.92)),
+    #d8edf1;
 }
 
-.game-shell {
+.world-shell {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(340px, 420px);
+  grid-template-columns: minmax(0, 1fr) minmax(340px, 410px);
   min-height: calc(100svh - 36px);
-  gap: 16px;
-  padding: 16px;
+  gap: 14px;
+  padding: 14px;
 }
 
-.battle-stage {
+.world-stage {
   position: relative;
-  min-height: 660px;
+  min-height: 720px;
   overflow: hidden;
   border-radius: 8px;
-  box-shadow: var(--shadow);
   background: #9fd5e7;
+  box-shadow: var(--shadow);
 }
 
 #game-root {
@@ -245,7 +248,7 @@ h2 {
   display: block;
 }
 
-.battle-topbar {
+.world-topbar {
   position: absolute;
   z-index: 3;
   top: 16px;
@@ -258,16 +261,18 @@ h2 {
   pointer-events: none;
 }
 
-.battle-topbar h1 {
+.world-topbar h1 {
   color: #fffdf5;
   font-size: clamp(2rem, 5vw, 5.2rem);
-  text-shadow: 0 4px 22px rgba(17, 54, 61, 0.42);
+  text-shadow: 0 4px 22px rgba(17, 54, 61, 0.44);
 }
 
-.topbar-actions {
+.topbar-actions,
+.quickbelt,
+.outcome-buttons {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 9px;
 }
 
 .trainer-chip,
@@ -292,65 +297,52 @@ h2 {
   pointer-events: auto;
 }
 
-.battle-command {
+.interaction-prompt {
   position: absolute;
-  z-index: 3;
-  left: 18px;
-  right: 18px;
-  bottom: 18px;
-  display: grid;
-  grid-template-columns: minmax(240px, 0.85fr) minmax(320px, 1.15fr);
-  gap: 12px;
+  z-index: 4;
+  left: 50%;
+  bottom: 22px;
+  max-width: min(620px, calc(100% - 28px));
+  transform: translateX(-50%);
+  border: 1px solid rgba(255, 255, 255, 0.62);
+  border-radius: 8px;
+  padding: 12px 16px;
+  color: #fffdf5;
+  background: rgba(17, 54, 61, 0.82);
+  box-shadow: 0 16px 36px rgba(17, 54, 61, 0.26);
+  font-weight: 900;
+  text-align: center;
+  backdrop-filter: blur(12px);
 }
 
-.dialogue,
-.move-button,
-.panel-section {
+.quickbelt {
+  position: absolute;
+  z-index: 3;
+  left: 16px;
+  bottom: 16px;
+}
+
+.quickbelt button {
+  min-height: 36px;
+  padding: 7px 10px;
+  background: rgba(17, 54, 61, 0.82);
+  backdrop-filter: blur(10px);
+}
+
+.world-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-height: calc(100svh - 30px);
+  overflow: auto;
+}
+
+.panel-section,
+.forecast-card {
   border: 1px solid rgba(20, 34, 40, 0.14);
   border-radius: 8px;
   background: rgba(255, 255, 248, 0.9);
   box-shadow: 0 10px 30px rgba(17, 54, 61, 0.12);
-}
-
-.dialogue {
-  min-height: 116px;
-  padding: 18px;
-  font-family: Georgia, "Times New Roman", serif;
-  font-size: 1.15rem;
-  font-weight: 800;
-  line-height: 1.25;
-}
-
-.move-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px;
-}
-
-.move-button {
-  display: grid;
-  min-height: 54px;
-  padding: 10px;
-  color: var(--ink);
-  text-align: left;
-}
-
-.move-button strong {
-  font-size: 0.96rem;
-}
-
-.move-button span {
-  color: rgba(20, 34, 40, 0.67);
-  font-size: 0.76rem;
-  line-height: 1.25;
-}
-
-.league-panel {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  max-height: calc(100svh - 34px);
-  overflow: auto;
 }
 
 .panel-section {
@@ -392,6 +384,22 @@ dt {
 dd {
   margin: 2px 0 0;
   font-weight: 900;
+}
+
+.xp-track {
+  height: 8px;
+  overflow: hidden;
+  margin-top: 12px;
+  border-radius: 999px;
+  background: rgba(20, 34, 40, 0.12);
+}
+
+.xp-track i {
+  display: block;
+  width: 0%;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--gold), var(--coral), var(--teal));
 }
 
 .party-list,
@@ -460,6 +468,34 @@ form {
   gap: 9px;
 }
 
+.forecast-card {
+  display: grid;
+  gap: 3px;
+  margin-top: 10px;
+  padding: 12px;
+}
+
+.forecast-card strong {
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 1.08rem;
+}
+
+.forecast-card span,
+.quest-copy {
+  color: rgba(20, 34, 40, 0.68);
+  line-height: 1.35;
+}
+
+.outcome-buttons {
+  margin-top: 10px;
+}
+
+.outcome-buttons button {
+  flex: 1;
+  min-height: 38px;
+  padding: 8px 9px;
+}
+
 details summary {
   display: flex;
   align-items: flex-start;
@@ -505,60 +541,60 @@ details form {
 }
 
 @media (max-width: 1080px) {
-  .game-shell,
+  .world-shell,
   .auth-shell {
     grid-template-columns: 1fr;
   }
 
-  .league-panel {
+  .world-panel {
     max-height: none;
   }
 
-  .battle-stage {
-    min-height: 620px;
+  .world-stage {
+    min-height: 640px;
   }
 }
 
 @media (max-width: 720px) {
-  .game-shell,
+  .world-shell,
   .gate-layout,
   .auth-shell {
     padding: 10px;
     gap: 10px;
   }
 
-  .battle-stage {
-    min-height: 560px;
+  .world-stage {
+    min-height: 590px;
   }
 
-  .battle-topbar {
+  .world-topbar {
     top: 10px;
     left: 10px;
     right: 10px;
   }
 
-  .battle-topbar h1 {
+  .world-topbar h1 {
     font-size: 2.4rem;
   }
 
-  .battle-command {
-    left: 10px;
-    right: 10px;
-    bottom: 10px;
-    grid-template-columns: 1fr;
-  }
-
-  .dialogue {
-    min-height: 76px;
-    padding: 12px;
-    font-size: 0.98rem;
-  }
-
-  .move-grid,
   .stats-grid,
   .forecast-grid,
   .form-row {
     grid-template-columns: 1fr;
+  }
+
+  .quickbelt {
+    left: 10px;
+    right: 10px;
+    bottom: 10px;
+  }
+
+  .quickbelt button {
+    flex: 1;
+  }
+
+  .interaction-prompt {
+    bottom: 60px;
   }
 
   .auth-art {

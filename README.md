@@ -2,7 +2,7 @@
 
 Aetherforge is a multi-user browser game where players collect market "essence," train a personal oracle model, forecast stock/option setups, and route Tradier previews through a secure server-side broker bridge.
 
-The v2 game is a Pokemon-like stock-options battler built with Phaser, Vite, and TypeScript. Players train option spirits, battle market regimes, collect training samples, and use an oracle model before previewing any broker action.
+The current game is an MMORPG-style cloud-city prototype built with Phaser, Vite, and TypeScript. Players explore Cloudspire Exchange, collect labeled market signals, train a personal oracle model, scan symbols for short-term single call/put reads, and preview broker actions only through secure server routes.
 
 Live app: https://aetherforge-a5i.pages.dev
 
@@ -79,10 +79,15 @@ Open the local Pages URL shown by Wrangler.
 
 - `/login`: dedicated login screen
 - `/register`: dedicated account creation screen
-- `/game`: main creature-battle interface
-- `F`: fullscreen during battle
+- `/game`: main Cloudspire Exchange world
+- `WASD` or arrow keys: move
+- `Space`: sprint
+- `E`: interact with signal wisps, stations, and guild shrines
+- `F`: fullscreen
 
-Choose moves, defeat market regimes, train the oracle, then forecast a symbol. Broker preview and placement controls are available after login and Tradier connection.
+Gather signal wisps, run paper contract drills, train the oracle, scan a symbol, then optionally preview a single-leg call/put order. Broker preview and placement controls are available after login and Tradier connection.
+
+The oracle improves from labeled outcomes. In the current game loop, players gather simulated signal memories, run paper contract drills, and can record later call/put results after a scan. A live historical market-data ingestion pass is still needed before treating predictions as research-grade trading signals.
 
 ## Deploy
 

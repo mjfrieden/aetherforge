@@ -3,79 +3,111 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Aetherforge League</title>
-    <script type="module" crossorigin src="/assets/game-h3ltX76o.js"></script>
+    <title>Aetherforge Online</title>
+    <script type="module" crossorigin src="/assets/game-CuR9XmR2.js"></script>
     <link rel="modulepreload" crossorigin href="/assets/api-2BZ-9_vN.js">
-    <link rel="stylesheet" crossorigin href="/assets/styles-5H4AtIhV.css">
+    <link rel="stylesheet" crossorigin href="/assets/styles-C_jTLE3E.css">
   </head>
   <body class="game-body">
-    <main class="game-shell">
-      <section class="battle-stage" aria-label="Aetherforge creature battle">
+    <main class="world-shell">
+      <section class="world-stage" aria-label="Aetherforge cloud city">
         <div id="game-root"></div>
-        <div class="battle-topbar">
+        <header class="world-topbar">
           <div>
-            <p class="eyebrow">Aetherforge League</p>
-            <h1>Options Arena</h1>
+            <p class="eyebrow">Aetherforge Online</p>
+            <h1>Cloudspire Exchange</h1>
           </div>
           <div class="topbar-actions">
             <span class="trainer-chip" id="trainer-chip">Loading</span>
             <button class="icon-button" id="fullscreen-btn" type="button" title="Fullscreen" aria-label="Fullscreen">F</button>
           </div>
-        </div>
-        <div class="battle-command" id="battle-command" aria-label="Battle command menu">
-          <div class="dialogue" id="battle-log">Loading your team...</div>
-          <div class="move-grid" id="move-grid"></div>
-        </div>
+        </header>
+        <div class="interaction-prompt hidden" id="interaction-prompt"></div>
+        <nav class="quickbelt" aria-label="World panels">
+          <button type="button" data-panel-jump="oracle">Oracle</button>
+          <button type="button" data-panel-jump="market">Market</button>
+          <button type="button" data-panel-jump="broker">Broker</button>
+        </nav>
       </section>
 
-      <aside class="league-panel" aria-label="Trainer controls">
+      <aside class="world-panel" aria-label="Oracle and trading console">
         <section class="panel-section compact">
           <div class="section-heading">
             <div>
-              <p class="eyebrow">Trainer</p>
+              <p class="eyebrow">Character</p>
               <h2 id="player-name">Cloud Initiate</h2>
             </div>
             <button id="logout-btn" type="button">Logout</button>
           </div>
           <dl class="stats-grid">
             <div><dt>Level</dt><dd id="level-value">1</dd></div>
-            <div><dt>Wins</dt><dd id="wins-value">0</dd></div>
+            <div><dt>XP</dt><dd id="xp-value">0</dd></div>
             <div><dt>Samples</dt><dd id="sample-value">0</dd></div>
             <div><dt>Rank</dt><dd id="rank-value">-</dd></div>
           </dl>
+          <div class="xp-track" aria-label="Level progress"><i id="xp-fill"></i></div>
         </section>
 
         <section class="panel-section compact">
           <div class="section-heading">
             <div>
-              <p class="eyebrow">Party</p>
-              <h2>Option Spirits</h2>
+              <p class="eyebrow">Quest</p>
+              <h2 id="quest-title">First Signal Run</h2>
             </div>
-            <button id="new-battle-btn" type="button">New Rival</button>
+            <span class="mode-badge" id="world-mode">Hub</span>
           </div>
-          <div class="party-list" id="party-list"></div>
+          <p class="quest-copy" id="quest-copy">Gather signal wisps around Cloudspire to build your first training set.</p>
+          <p class="status" id="world-status">Move with WASD or arrows. Press E near glowing stations.</p>
         </section>
 
-        <section class="panel-section compact">
+        <section class="panel-section compact" id="oracle-panel">
           <div class="section-heading">
             <div>
-              <p class="eyebrow">Oracle AI</p>
-              <h2>Train Model</h2>
+              <p class="eyebrow">Oracle Profession</p>
+              <h2>Train Short-Term Model</h2>
             </div>
             <button id="train-btn" type="button">Train</button>
           </div>
           <div class="meter-list" id="essence-list"></div>
+          <div class="party-list" id="companion-list"></div>
+          <button id="paper-drill-btn" type="button">Run Paper Contract Drill</button>
+          <p class="status" id="model-status">Collect labeled call/put outcomes, then train the oracle.</p>
+        </section>
+
+        <section class="panel-section compact" id="market-panel">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">Market Scryer</p>
+              <h2>Single-Leg Call/Put Scan</h2>
+            </div>
+            <button id="predict-btn" type="button">Scan</button>
+          </div>
           <div class="forecast-grid">
             <label>
               Symbol
               <input id="predict-symbol" value="SPY" maxlength="12">
             </label>
-            <button id="predict-btn" type="button">Forecast</button>
+            <label>
+              Contract bias
+              <select id="contract-bias">
+                <option value="auto">Auto</option>
+                <option value="call">Call only</option>
+                <option value="put">Put only</option>
+              </select>
+            </label>
           </div>
-          <p class="status" id="model-status">Collect samples through battle moves.</p>
+          <div class="forecast-card" id="forecast-card">
+            <strong>No scan yet</strong>
+            <span>Train the oracle, then scan a symbol from the Market Scryer.</span>
+          </div>
+          <div class="outcome-buttons">
+            <button id="record-call-btn" type="button">Record Call Win</button>
+            <button id="record-put-btn" type="button">Record Put Win</button>
+          </div>
+          <p class="status" id="forecast-status">Outcome labels improve the next model you train.</p>
         </section>
 
-        <details class="panel-section compact">
+        <details class="panel-section compact" id="broker-panel">
           <summary>
             <span>
               <span class="eyebrow">Tradier Vault</span>
@@ -104,39 +136,28 @@
           <p class="status" id="tradier-status">Sandbox first. Live placement is deployment-gated.</p>
         </details>
 
-        <details class="panel-section compact">
+        <details class="panel-section compact" id="order-panel">
           <summary>
             <span>
-              <span class="eyebrow">Order Altar</span>
-              <strong>Preview Trade</strong>
+              <span class="eyebrow">Order Shrine</span>
+              <strong>Single-Leg Preview</strong>
             </span>
           </summary>
           <form id="order-form">
+            <input id="order-asset" type="hidden" value="option">
+            <input id="order-side" type="hidden" value="buy_to_open">
             <div class="form-row">
               <label>
-                Asset
-                <select id="order-asset">
-                  <option value="equity">Stock</option>
-                  <option value="option">Option</option>
-                </select>
-              </label>
-              <label>
-                Side
-                <select id="order-side"></select>
-              </label>
-            </div>
-            <div class="form-row">
-              <label>
-                Symbol
+                Underlying
                 <input id="order-symbol" value="SPY" maxlength="24">
               </label>
               <label>
-                Quantity
+                Contracts
                 <input id="order-quantity" type="number" min="1" max="10" value="1">
               </label>
             </div>
-            <label id="option-symbol-row" class="hidden">
-              Option symbol
+            <label id="option-symbol-row">
+              OCC option symbol
               <input id="order-option-symbol" maxlength="24" placeholder="SPY260515C00500000">
             </label>
             <div class="form-row">
@@ -148,11 +169,11 @@
                 </select>
               </label>
               <label>
-                Limit
+                Limit debit
                 <input id="order-price" type="number" min="0.01" step="0.01" value="1.00">
               </label>
             </div>
-            <button type="submit">Preview</button>
+            <button type="submit">Preview Single Contract</button>
             <label>
               Confirmation phrase
               <input id="order-confirm" autocomplete="off" placeholder="PLACE PAPER ORDER">
@@ -163,6 +184,6 @@
         </details>
       </aside>
     </main>
-    <p class="legal">Educational simulation. Not investment advice. Real brokerage actions require your own Tradier credentials and explicit confirmation.</p>
+    <p class="legal">Educational simulation. Not investment advice or a promise of profitable trades. Real brokerage actions require your own Tradier credentials and explicit confirmation.</p>
   </body>
 </html>

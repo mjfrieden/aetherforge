@@ -5,11 +5,16 @@ import { requireSameOriginAndCsrf } from "../../_lib/security.js";
 
 function sanitizeGameState(value) {
   const state = value && typeof value === "object" ? value : {};
+  const profession = state.profession && typeof state.profession === "object" ? state.profession : {};
+  const forecast = profession.forecast && typeof profession.forecast === "object" ? profession.forecast : null;
+  const forecastFeatures = forecast?.features && typeof forecast.features === "object" ? forecast.features : {};
   const roster = Array.isArray(state.roster)
     ? state.roster.slice(0, 8).map((creature) => ({
         id: String(creature?.id || "").slice(0, 32),
         name: String(creature?.name || "").slice(0, 48),
         archetype: String(creature?.archetype || "").slice(0, 32),
+        role: String(creature?.role || "").slice(0, 48),
+        sprite: String(creature?.sprite || "").slice(0, 32),
         level: Math.max(1, Math.min(99, Number.parseInt(String(creature?.level || 1), 10) || 1)),
         xp: Math.max(0, Math.min(100000, Number.parseInt(String(creature?.xp || 0), 10) || 0)),
         maxHp: Math.max(40, Math.min(500, Number.parseInt(String(creature?.maxHp || 100), 10) || 100)),
@@ -21,6 +26,35 @@ function sanitizeGameState(value) {
     wins: Math.max(0, Math.min(100000, Number.parseInt(String(state.wins || 0), 10) || 0)),
     activeCreatureId: String(state.activeCreatureId || "").slice(0, 32),
     roster,
+    player: {
+      x: Math.max(0, Math.min(5000, Number(state.player?.x || 0))),
+      y: Math.max(0, Math.min(5000, Number(state.player?.y || 0))),
+    },
+    profession: {
+      signalsCollected: Math.max(
+        0,
+        Math.min(100000, Number.parseInt(String(profession.signalsCollected || state.wins || 0), 10) || 0),
+      ),
+      questStage: Math.max(0, Math.min(20, Number.parseInt(String(profession.questStage || 0), 10) || 0)),
+      contractBias: ["auto", "call", "put"].includes(String(profession.contractBias))
+        ? String(profession.contractBias)
+        : "auto",
+      forecast: forecast
+        ? {
+            symbol: String(forecast.symbol || state.last_symbol || "SPY").toUpperCase().slice(0, 12),
+            contract: ["call", "put", "wait"].includes(String(forecast.contract)) ? String(forecast.contract) : "wait",
+            probability: Math.max(0, Math.min(1, Number(forecast.probability || 0))),
+            class: String(forecast.class || "").slice(0, 32),
+            features: {
+              momentum: Math.max(-1, Math.min(1, Number(forecastFeatures.momentum || 0))),
+              volatility: Math.max(-1, Math.min(1, Number(forecastFeatures.volatility || 0))),
+              sentiment: Math.max(-1, Math.min(1, Number(forecastFeatures.sentiment || 0))),
+              liquidity: Math.max(-1, Math.min(1, Number(forecastFeatures.liquidity || 0))),
+              iv_rank: Math.max(-1, Math.min(1, Number(forecastFeatures.iv_rank || 0))),
+            },
+          }
+        : null,
+    },
     essence: {
       momentum: Math.max(0, Math.min(999, Number(state.essence?.momentum || 0))),
       volatility: Math.max(0, Math.min(999, Number(state.essence?.volatility || 0))),
@@ -28,7 +62,7 @@ function sanitizeGameState(value) {
       liquidity: Math.max(0, Math.min(999, Number(state.essence?.liquidity || 0))),
       iv_rank: Math.max(0, Math.min(999, Number(state.essence?.iv_rank || 0))),
     },
-    samples: Array.isArray(state.samples) ? state.samples.slice(-120) : [],
+    samples: Array.isArray(state.samples) ? state.samples.slice(-160) : [],
     last_symbol: String(state.last_symbol || "SPY").toUpperCase().slice(0, 12),
   };
 }
