@@ -3,186 +3,358 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Aetherforge Online</title>
+    <title>Cumulonimbus | Option Oracle</title>
     <link rel="stylesheet" href="/src/styles.css">
   </head>
   <body class="game-body">
-    <main class="world-shell">
-      <section class="world-stage" aria-label="Aetherforge cloud city">
-        <div id="game-root"></div>
-        <header class="world-topbar">
+    <main class="oracle-shell">
+      <aside class="oracle-rail" aria-label="Cumulonimbus navigation">
+        <a class="rail-brand" href="/">
+          <span class="brand-mark" aria-hidden="true">
+            <svg viewBox="0 0 72 72" role="img">
+              <defs>
+                <linearGradient id="jaySky" x1="8" y1="10" x2="62" y2="62" gradientUnits="userSpaceOnUse">
+                  <stop offset="0" stop-color="#38bdf8"></stop>
+                  <stop offset="0.48" stop-color="#4f46e5"></stop>
+                  <stop offset="1" stop-color="#111827"></stop>
+                </linearGradient>
+              </defs>
+              <path class="mark-cloud" d="M18.2 48.8h33.9c7.5 0 12.9-4.5 12.9-11.3 0-6.3-4.9-10.7-11.1-10.8C51.9 17.6 44.4 11 35 11c-8.6 0-15.5 5.4-18.1 13.1C10.4 25.2 6 30.1 6 36.4c0 7.3 5.5 12.4 12.2 12.4Z"></path>
+              <path class="mark-wing" d="M19.8 42.8c12.8-1.6 23.7-8 33-19.2-2.1 13.2-9.2 23.4-21.5 30.7-3.6-4.4-7.5-8.2-11.5-11.5Z"></path>
+              <path class="mark-head" d="M43.2 19.5c4.1-3.9 8.5-5.3 13.1-4.1-2.3 1.8-3.9 4-4.9 6.7-2.9-.4-5.6-.2-8.2.6v-3.2Z"></path>
+              <circle class="mark-eye" cx="51.3" cy="19.8" r="1.4"></circle>
+              <path class="mark-beak" d="M56.2 20.4 66 18.2l-8.2 5.5-1.6-3.3Z"></path>
+            </svg>
+          </span>
+          <span class="brand-copy">
+            <strong>Cumulonimbus</strong>
+            <small>Option Oracle</small>
+          </span>
+        </a>
+        <nav class="rail-nav" aria-label="Workspace">
+          <button class="active" type="button" data-view="desk">Trading Desk</button>
+          <button type="button" data-view="lab">Model Lab</button>
+          <button type="button" data-view="league">Leagues</button>
+          <button type="button" data-view="vault">Broker Vault</button>
+        </nav>
+        <div class="rail-footer">
+          <span id="session-chip">Loading</span>
+          <button id="logout-btn" type="button">Logout</button>
+        </div>
+      </aside>
+
+      <section class="oracle-workspace" aria-label="Options trading cockpit">
+        <header class="oracle-topbar">
           <div>
-            <p class="eyebrow">Aetherforge Online</p>
-            <h1>Cloudspire Exchange</h1>
+            <p class="eyebrow">Cumulonimbus paper arena</p>
+            <h1>Options Trading Desk</h1>
           </div>
-          <div class="topbar-actions">
-            <span class="trainer-chip" id="trainer-chip">Loading</span>
-            <button class="icon-button" id="fullscreen-btn" type="button" title="Fullscreen" aria-label="Fullscreen">F</button>
+          <div class="account-strip" aria-label="Account summary">
+            <dl>
+              <div>
+                <dt>Equity</dt>
+                <dd id="equity-value">$10,000.00</dd>
+              </div>
+              <div>
+                <dt>Day P&L</dt>
+                <dd id="day-pnl-value">$0.00</dd>
+              </div>
+              <div>
+                <dt>Level</dt>
+                <dd id="level-value">1</dd>
+              </div>
+              <div>
+                <dt>Rank</dt>
+                <dd id="rank-value">-</dd>
+              </div>
+            </dl>
           </div>
         </header>
-        <div class="interaction-prompt hidden" id="interaction-prompt"></div>
-        <nav class="quickbelt" aria-label="World panels">
-          <button type="button" data-panel-jump="oracle">Oracle</button>
-          <button type="button" data-panel-jump="market">Market</button>
-          <button type="button" data-panel-jump="broker">Broker</button>
-        </nav>
+
+        <section class="view-panel active" id="view-desk" data-view-panel="desk">
+          <div class="desk-grid">
+            <section class="market-column" aria-label="Market watch">
+              <div class="section-heading">
+                <div>
+                  <p class="eyebrow">Watchlist</p>
+                  <h2>Market Watch</h2>
+                </div>
+                <button id="refresh-market-btn" type="button" title="Refresh symbols" aria-label="Refresh symbols">↻</button>
+              </div>
+              <div class="symbol-search">
+                <label>
+                  Symbol
+                  <input id="symbol-input" value="SPY" maxlength="12" autocomplete="off">
+                </label>
+                <button id="scan-symbol-btn" type="button">Scan</button>
+              </div>
+              <div class="watchlist" id="watchlist"></div>
+              <div class="coach-note" id="coach-note">
+                Train a model, then scan a symbol. The coach will flag liquidity, volatility, and no-trade risk.
+              </div>
+            </section>
+
+            <section class="primary-desk" aria-label="Portfolio and option chain">
+              <div class="desk-chart-head">
+                <div>
+                  <p class="eyebrow">Paper account</p>
+                  <h2 id="portfolio-title">Portfolio Velocity</h2>
+                </div>
+                <div class="mode-toggle" role="group" aria-label="Trading mode">
+                  <button class="active" type="button" data-paper-mode="paper">Paper</button>
+                  <button type="button" data-paper-mode="shadow">Shadow</button>
+                </div>
+              </div>
+              <div class="equity-chart" id="equity-chart" aria-label="Equity curve"></div>
+              <div class="chain-head">
+                <div>
+                  <p class="eyebrow">Option chain</p>
+                  <h2 id="chain-title">SPY Contracts</h2>
+                </div>
+                <span id="data-freshness">Synthetic paper feed</span>
+              </div>
+              <div class="option-chain" id="option-chain"></div>
+            </section>
+
+            <section class="model-column" aria-label="Active model">
+              <div class="section-heading">
+                <div>
+                  <p class="eyebrow">Active oracle</p>
+                  <h2 id="model-name">Cloudspire Oracle</h2>
+                </div>
+                <button id="open-lab-btn" type="button">Tune</button>
+              </div>
+              <div class="model-score">
+                <span id="model-accuracy">Untrained</span>
+                <small id="model-brier">Collect labeled outcomes</small>
+              </div>
+              <div class="importance-list" id="importance-list"></div>
+              <div class="signal-tools">
+                <button id="paper-drill-btn" type="button">Run Paper Drill</button>
+                <button id="record-call-btn" type="button">Record Call Win</button>
+                <button id="record-put-btn" type="button">Record Put Win</button>
+              </div>
+              <p class="status" id="forecast-status">Paper drills create training labels without touching a broker account.</p>
+            </section>
+          </div>
+
+          <section class="desk-bottom" aria-label="Inference and trade journal">
+            <div>
+              <div class="section-heading">
+                <div>
+                  <p class="eyebrow">Recent inference</p>
+                  <h2>Oracle Read</h2>
+                </div>
+                <span id="oracle-class">No scan</span>
+              </div>
+              <div class="inference-strip" id="inference-strip"></div>
+            </div>
+            <div>
+              <div class="section-heading">
+                <div>
+                  <p class="eyebrow">Trade journal</p>
+                  <h2>Last Paper Trades</h2>
+                </div>
+                <span id="trade-count">0 trades</span>
+              </div>
+              <div class="trade-journal" id="trade-journal"></div>
+            </div>
+          </section>
+        </section>
+
+        <section class="view-panel" id="view-lab" data-view-panel="lab">
+          <div class="lab-layout">
+            <section class="lab-palette" aria-label="Model components">
+              <p class="eyebrow">Model Lab</p>
+              <h2>Build Your Oracle</h2>
+              <div class="lab-group">
+                <h3>Core Engine</h3>
+                <div class="choice-list" id="architecture-list"></div>
+              </div>
+              <div class="lab-group">
+                <h3>Input Dimensions</h3>
+                <div class="choice-list" id="feature-list"></div>
+              </div>
+              <div class="lab-group">
+                <h3>Optimizer</h3>
+                <div class="choice-list" id="optimizer-list"></div>
+              </div>
+            </section>
+
+            <section class="pipeline-stage" aria-label="Model pipeline">
+              <div class="pipeline-canvas">
+                <div class="pipeline-node input" id="pipeline-inputs">No inputs connected</div>
+                <div class="pipeline-line"></div>
+                <div class="pipeline-node core">
+                  <span>Active Architecture</span>
+                  <strong id="pipeline-core">Random Forest</strong>
+                  <small id="pipeline-type">Ensemble</small>
+                </div>
+                <div class="pipeline-line"></div>
+                <div class="pipeline-row">
+                  <span id="pipeline-optimizer">AdamW</span>
+                  <span>MSE Loss</span>
+                </div>
+              </div>
+              <div class="pipeline-metrics">
+                <div><dt>Complexity</dt><dd id="pipeline-complexity">1.2M params</dd></div>
+                <div><dt>Training rows</dt><dd id="training-row-count">0</dd></div>
+                <div><dt>XP reward</dt><dd id="training-xp">+20 XP</dd></div>
+              </div>
+            </section>
+
+            <section class="training-console" aria-label="Training console">
+              <div class="section-heading">
+                <div>
+                  <p class="eyebrow">Training</p>
+                  <h2>Console</h2>
+                </div>
+              </div>
+              <div class="console-log" id="console-log"></div>
+              <button id="train-model-btn" type="button">Deploy Oracle</button>
+              <p class="status" id="model-status">Choose inputs, run paper drills, then deploy a personal model.</p>
+            </section>
+          </div>
+
+          <section class="research-grid" aria-label="Finance machine learning research lab">
+            <section class="data-studio" aria-label="Real-world data curation">
+              <div class="section-heading">
+                <div>
+                  <p class="eyebrow">Data Curation</p>
+                  <h2>Real-World Feeds</h2>
+                </div>
+                <span id="data-readiness">Research mode</span>
+              </div>
+              <div class="provider-grid" id="provider-grid"></div>
+              <div class="google-finance-note">
+                <strong>Google Finance Beta path</strong>
+                <span>Use Google Sheets `GOOGLEFINANCE` for learning exports, then import CSV snapshots. Production scans should use licensed APIs because Sheets data is delayed and not API-downloadable for historical arrays.</span>
+              </div>
+            </section>
+
+            <section class="context-window-lab" aria-label="Model context window">
+              <div class="section-heading">
+                <div>
+                  <p class="eyebrow">Context Window</p>
+                  <h2>Curation Pipeline</h2>
+                </div>
+                <span id="context-budget">0 / 8 signals</span>
+              </div>
+              <div class="context-map" id="context-map"></div>
+            </section>
+
+            <section class="validation-lab" aria-label="Validation and leakage checks">
+              <div class="section-heading">
+                <div>
+                  <p class="eyebrow">Validation</p>
+                  <h2>Walk-Forward Bench</h2>
+                </div>
+                <span id="leakage-badge">Leakage guard</span>
+              </div>
+              <div class="validation-grid" id="validation-grid"></div>
+              <div class="label-lab" id="label-lab"></div>
+            </section>
+          </section>
+        </section>
+
+        <section class="view-panel" id="view-league" data-view-panel="league">
+          <div class="league-layout">
+            <section>
+              <p class="eyebrow">Weekly season</p>
+              <h2>Paper League</h2>
+              <div class="league-board" id="leaderboard"></div>
+            </section>
+            <section class="challenge-panel">
+              <p class="eyebrow">Learning challenges</p>
+              <h2>Today’s Arena</h2>
+              <div class="challenge-list" id="challenge-list"></div>
+            </section>
+          </div>
+        </section>
+
+        <section class="view-panel" id="view-vault" data-view-panel="vault">
+          <div class="vault-layout">
+            <section class="broker-panel">
+              <div class="section-heading">
+                <div>
+                  <p class="eyebrow">Tradier Vault</p>
+                  <h2>Broker Link</h2>
+                </div>
+                <span class="mode-badge" id="broker-mode">Disconnected</span>
+              </div>
+              <form id="tradier-form">
+                <label>
+                  Access token
+                  <input id="tradier-token" type="password" autocomplete="off" placeholder="Stored encrypted server-side">
+                </label>
+                <label>
+                  Account ID
+                  <input id="tradier-account" autocomplete="off">
+                </label>
+                <label>
+                  Mode
+                  <select id="tradier-mode">
+                    <option value="sandbox">Sandbox</option>
+                    <option value="live">Live</option>
+                  </select>
+                </label>
+                <button type="submit">Save Broker Link</button>
+              </form>
+              <p class="status" id="tradier-status">Sandbox first. Live placement remains deployment-gated.</p>
+            </section>
+
+            <section class="order-panel">
+              <div class="section-heading">
+                <div>
+                  <p class="eyebrow">Order ticket</p>
+                  <h2>Single-Leg Preview</h2>
+                </div>
+                <span id="order-risk-badge">Limit only for placement</span>
+              </div>
+              <form id="order-form">
+                <input id="order-asset" type="hidden" value="option">
+                <input id="order-side" type="hidden" value="buy_to_open">
+                <div class="form-row">
+                  <label>
+                    Underlying
+                    <input id="order-symbol" value="SPY" maxlength="24">
+                  </label>
+                  <label>
+                    Contracts
+                    <input id="order-quantity" type="number" min="1" max="10" value="1">
+                  </label>
+                </div>
+                <label>
+                  OCC option symbol
+                  <input id="order-option-symbol" maxlength="24" placeholder="SPY260515C00500000">
+                </label>
+                <div class="form-row">
+                  <label>
+                    Type
+                    <select id="order-type">
+                      <option value="limit">Limit</option>
+                      <option value="market">Market preview</option>
+                    </select>
+                  </label>
+                  <label>
+                    Limit debit
+                    <input id="order-price" type="number" min="0.01" step="0.01" value="1.00">
+                  </label>
+                </div>
+                <button type="submit">Preview Through Tradier</button>
+                <label>
+                  Confirmation phrase
+                  <input id="order-confirm" autocomplete="off" placeholder="PLACE PAPER ORDER">
+                </label>
+                <button id="place-order-btn" type="button">Place Gated Order</button>
+              </form>
+              <p class="status" id="order-status">No broker preview yet.</p>
+            </section>
+          </div>
+        </section>
       </section>
-
-      <aside class="world-panel" aria-label="Oracle and trading console">
-        <section class="panel-section compact">
-          <div class="section-heading">
-            <div>
-              <p class="eyebrow">Character</p>
-              <h2 id="player-name">Cloud Initiate</h2>
-            </div>
-            <button id="logout-btn" type="button">Logout</button>
-          </div>
-          <dl class="stats-grid">
-            <div><dt>Level</dt><dd id="level-value">1</dd></div>
-            <div><dt>XP</dt><dd id="xp-value">0</dd></div>
-            <div><dt>Samples</dt><dd id="sample-value">0</dd></div>
-            <div><dt>Rank</dt><dd id="rank-value">-</dd></div>
-          </dl>
-          <div class="xp-track" aria-label="Level progress"><i id="xp-fill"></i></div>
-        </section>
-
-        <section class="panel-section compact">
-          <div class="section-heading">
-            <div>
-              <p class="eyebrow">Quest</p>
-              <h2 id="quest-title">First Signal Run</h2>
-            </div>
-            <span class="mode-badge" id="world-mode">Hub</span>
-          </div>
-          <p class="quest-copy" id="quest-copy">Gather signal wisps around Cloudspire to build your first training set.</p>
-          <p class="status" id="world-status">Move with WASD or arrows. Press E near glowing stations.</p>
-        </section>
-
-        <section class="panel-section compact" id="oracle-panel">
-          <div class="section-heading">
-            <div>
-              <p class="eyebrow">Oracle Profession</p>
-              <h2>Train Short-Term Model</h2>
-            </div>
-            <button id="train-btn" type="button">Train</button>
-          </div>
-          <div class="meter-list" id="essence-list"></div>
-          <div class="party-list" id="companion-list"></div>
-          <button id="paper-drill-btn" type="button">Run Paper Contract Drill</button>
-          <p class="status" id="model-status">Collect labeled call/put outcomes, then train the oracle.</p>
-        </section>
-
-        <section class="panel-section compact" id="market-panel">
-          <div class="section-heading">
-            <div>
-              <p class="eyebrow">Market Scryer</p>
-              <h2>Single-Leg Call/Put Scan</h2>
-            </div>
-            <button id="predict-btn" type="button">Scan</button>
-          </div>
-          <div class="forecast-grid">
-            <label>
-              Symbol
-              <input id="predict-symbol" value="SPY" maxlength="12">
-            </label>
-            <label>
-              Contract bias
-              <select id="contract-bias">
-                <option value="auto">Auto</option>
-                <option value="call">Call only</option>
-                <option value="put">Put only</option>
-              </select>
-            </label>
-          </div>
-          <div class="forecast-card" id="forecast-card">
-            <strong>No scan yet</strong>
-            <span>Train the oracle, then scan a symbol from the Market Scryer.</span>
-          </div>
-          <div class="outcome-buttons">
-            <button id="record-call-btn" type="button">Record Call Win</button>
-            <button id="record-put-btn" type="button">Record Put Win</button>
-          </div>
-          <p class="status" id="forecast-status">Outcome labels improve the next model you train.</p>
-        </section>
-
-        <details class="panel-section compact" id="broker-panel">
-          <summary>
-            <span>
-              <span class="eyebrow">Tradier Vault</span>
-              <strong>Broker Link</strong>
-            </span>
-            <span class="mode-badge" id="broker-mode">Disconnected</span>
-          </summary>
-          <form id="tradier-form">
-            <label>
-              Access token
-              <input id="tradier-token" type="password" autocomplete="off" placeholder="Stored encrypted server-side">
-            </label>
-            <label>
-              Account ID
-              <input id="tradier-account" autocomplete="off">
-            </label>
-            <label>
-              Mode
-              <select id="tradier-mode">
-                <option value="sandbox">Sandbox</option>
-                <option value="live">Live</option>
-              </select>
-            </label>
-            <button type="submit">Save Broker Link</button>
-          </form>
-          <p class="status" id="tradier-status">Sandbox first. Live placement is deployment-gated.</p>
-        </details>
-
-        <details class="panel-section compact" id="order-panel">
-          <summary>
-            <span>
-              <span class="eyebrow">Order Shrine</span>
-              <strong>Single-Leg Preview</strong>
-            </span>
-          </summary>
-          <form id="order-form">
-            <input id="order-asset" type="hidden" value="option">
-            <input id="order-side" type="hidden" value="buy_to_open">
-            <div class="form-row">
-              <label>
-                Underlying
-                <input id="order-symbol" value="SPY" maxlength="24">
-              </label>
-              <label>
-                Contracts
-                <input id="order-quantity" type="number" min="1" max="10" value="1">
-              </label>
-            </div>
-            <label id="option-symbol-row">
-              OCC option symbol
-              <input id="order-option-symbol" maxlength="24" placeholder="SPY260515C00500000">
-            </label>
-            <div class="form-row">
-              <label>
-                Type
-                <select id="order-type">
-                  <option value="limit">Limit</option>
-                  <option value="market">Market preview</option>
-                </select>
-              </label>
-              <label>
-                Limit debit
-                <input id="order-price" type="number" min="0.01" step="0.01" value="1.00">
-              </label>
-            </div>
-            <button type="submit">Preview Single Contract</button>
-            <label>
-              Confirmation phrase
-              <input id="order-confirm" autocomplete="off" placeholder="PLACE PAPER ORDER">
-            </label>
-            <button id="place-order-btn" type="button">Place Gated Order</button>
-          </form>
-          <p class="status" id="order-status">No order preview yet.</p>
-        </details>
-      </aside>
     </main>
-    <p class="legal">Educational simulation. Not investment advice or a promise of profitable trades. Real brokerage actions require your own Tradier credentials and explicit confirmation.</p>
+    <p class="legal">Educational simulation. Not investment advice. Paper results are training feedback, not a promise of live market performance.</p>
     <script type="module" src="/src/game/main.ts"></script>
   </body>
 </html>

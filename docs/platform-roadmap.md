@@ -1,33 +1,43 @@
-# Aetherforge Platform Roadmap
+# Option Oracle Arena Platform Roadmap
 
 ## Recommendation
 
-Aetherforge should be a Phaser/Vite browser MMO-style game first. The game code is host-agnostic: Vite builds static files into `public/`, while secure server routes remain isolated from the browser.
+Option Oracle Arena should be an options trading and learning cockpit first. The main product surface is now the `/game` trading desk, not an explorable MMO map. The game layer should show up through progression, leagues, challenges, model versions, badges, and season framing while the user's core loop stays close to real options work.
 
 The ideal long-term product stack is:
 
-- Phaser 3 + TypeScript + Vite for the explorable game client.
+- Vite + TypeScript for the authenticated cockpit.
 - Dedicated `/login`, `/register`, and `/game` pages.
-- Supabase Auth + Postgres for multi-user identity and game state.
-- A real-time presence layer for true MMO behavior; Cloudflare Durable Objects or Supabase Realtime are both reasonable candidates.
+- A paper-trading ledger with normalized league seasons.
+- Server-side market data and option-chain ingestion.
+- Server-side model training/prediction routes with model version history.
+- A real-time presence layer for league rooms, shared watchlists, and mentor sessions.
 - Server-side Tradier routes for broker previews and gated order placement.
-- Vercel or another first-class Vite host for the frontend.
 
 ## Current Practical Boundary
 
-This repo already had working Cloudflare Pages Functions for auth, encrypted per-user Tradier token storage, CSRF, sessions, D1 persistence, and order gating. Those security-sensitive routes were preserved during the game rebuild so trading protection did not regress.
+This repo already has working Cloudflare Pages Functions for auth, encrypted per-user Tradier token storage, CSRF, sessions, D1 persistence, model storage, game state, and order gating. Those security-sensitive routes were preserved during the cockpit pivot so trading protection did not regress.
 
-Moving fully to Supabase requires creating a Supabase project, deciding auth policies, setting Row Level Security, and migrating existing D1 data. Until those credentials and ownership choices exist, the safe move is:
+The current cockpit includes:
 
-1. Ship the Phaser MMO-style game overhaul on the existing secure backend.
-2. Keep the frontend build portable.
-3. Migrate backend storage/auth to Supabase in a dedicated pass.
+1. Trading Desk: watchlist, synthetic paper option chain, equity curve, paper trades, active model stats.
+2. Model Lab: architecture/features/optimizer selection with server-backed training.
+3. Leagues: D1-backed leaderboard plus learning challenge framing.
+4. Broker Vault: encrypted Tradier connection and gated single-leg preview/placement.
+
+The next high-value backend pass is replacing the synthetic paper feed with real server-side market data and a historical option-chain replay store.
+
+## Product Direction
+
+Near-term work should favor:
+
+- Real options-chain snapshots from Tradier or another licensed provider.
+- A paper trade ledger table instead of storing trades only inside `game_state`.
+- Model version comparison, feature importance history, and promotion gates.
+- No-trade scoring so patience beats forced trades.
+- League rooms with season resets, risk limits, and normalized starting capital.
+- AI coaching that explains risk, liquidity, IV, and sizing instead of pretending to be a data vendor.
 
 ## Image Budget Discipline
 
-Only two image-generation calls were used for the v2 art pass:
-
-- A reusable battle arena background.
-- A reusable four-creature sprite sheet.
-
-The game reuses those assets with Phaser, DOM UI, tinting, motion, and state changes instead of generating images dynamically for users. No OpenAI key is exposed to the browser.
+The cockpit does not need fresh generated art for every iteration. The existing arena background remains useful for login/landing atmosphere, while the main app should prioritize dense, readable trading UI. No OpenAI key is exposed to the browser.

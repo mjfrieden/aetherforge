@@ -38,3 +38,23 @@ TODO:
 - Preserved the generated art budget by reusing the existing arena background and creature sheet as world/companion assets; no new image-generation calls were used.
 - Local authenticated Playwright pass created a new user, loaded the world canvas, moved in the hub, ran six paper contract drills, trained the oracle, scanned SPY, recorded a call outcome, and reported zero console/HTTP errors.
 - Mobile Playwright screenshot at 390x844 loaded the world and stacked the HUD without console errors.
+
+## 2026-04-22 Option Oracle Pivot
+
+- User pointed to the sibling `option-oracle/` prototype as the desired product direction.
+- Analyzed `option-oracle/`: strong trading cockpit, options chain, model architect, paper P&L, and leaderboard framing, but local-only state, Gemini-generated market data, hardcoded leaderboard, and no secure broker/multi-user backend.
+- Rebuilt `/game` around an Option Oracle Arena cockpit instead of the Phaser world.
+- Added Trading Desk, Model Lab, Leagues, and Broker Vault views.
+- Preserved the existing secure Cloudflare Functions backend for auth, CSRF, D1, model train/predict, leaderboard, encrypted Tradier storage, preview, and gated placement.
+- Extended `/api/game/state` sanitization so cockpit state persists paper equity, P&L history, paper trades, selected pipeline, and paper/shadow mode.
+- Removed the unused Phaser dependency after the pivot.
+- Updated landing/auth copy, README, and platform roadmap to reflect the cockpit direction.
+- Added local ignored `.dev.vars` for Pages smoke testing and ran local D1 migration.
+- Verified with `npm run build`, `npm test`, and an authenticated Playwright flow: register, load desk, run paper drills, train model, scan SPY, simulate a paper option trade, open league/vault, and mobile login/render at 390x844 with zero console/page errors.
+
+## 2026-04-22 Model Lab Research Pass
+
+- Added a Cumulonimbus cloud/blue-jay SVG logo and shifted the cockpit theme toward the original Option Oracle slate/indigo bento palette.
+- Expanded Model Lab with a finance-research layer: real-world feed curation, context-window curation map, label design, walk-forward validation, no-trade gate, Brier/calibration display, and leakage guard framing.
+- Added Google Finance Sheets as a learning/import lane rather than a production API provider because official Google documentation says historical `GOOGLEFINANCE` arrays cannot be downloaded through Sheets API or Apps Script and quotes may be delayed/not for trading.
+- Verified the expanded Model Lab with `npm run build`, `npm test`, and Playwright screenshots with zero console/page errors.

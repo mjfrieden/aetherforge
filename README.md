@@ -1,8 +1,8 @@
-# Aetherforge
+# Option Oracle Arena
 
-Aetherforge is a multi-user browser game where players collect market "essence," train a personal oracle model, forecast stock/option setups, and route Tradier previews through a secure server-side broker bridge.
+Option Oracle Arena is a multi-user options trading and learning cockpit where players train a personal oracle model, practice short-term call/put decisions in paper mode, compare progress on leaderboards, and route Tradier previews through a secure server-side broker bridge.
 
-The current game is an MMORPG-style cloud-city prototype built with Phaser, Vite, and TypeScript. Players explore Cloudspire Exchange, collect labeled market signals, train a personal oracle model, scan symbols for short-term single call/put reads, and preview broker actions only through secure server routes.
+The current app is a Vite/TypeScript cockpit inspired by the `option-oracle/` prototype. The first screen is the trading desk: watchlist, synthetic paper option chain, equity curve, active model, paper trade journal, model lab, paper league, and broker vault. The fantasy layer is now flavor and progression, not the main interaction.
 
 Live app: https://aetherforge-a5i.pages.dev
 
@@ -10,10 +10,11 @@ Public GitHub repo: https://github.com/mjfrieden/aetherforge
 
 ## What This Builds From
 
-I evaluated the sibling projects:
+I evaluated the sibling projects and the later `option-oracle/` prototype:
 
 - Orographic has the deployable Cloudflare Pages shell, Scout -> Forge -> Council engine, and server-side Tradier pattern.
 - Cirrus has the stronger playbook/no-trade-gate discipline and live-versus-shadow research ledger.
+- Option Oracle has the better product center: a serious options desk, model architect, paper P&L loop, and league framing.
 
 The full write-up lives in [docs/project-evaluation.md](docs/project-evaluation.md).
 
@@ -75,19 +76,19 @@ npm run dev:pages
 
 Open the local Pages URL shown by Wrangler.
 
-## Controls
+## Main Screens
 
 - `/login`: dedicated login screen
 - `/register`: dedicated account creation screen
-- `/game`: main Cloudspire Exchange world
-- `WASD` or arrow keys: move
-- `Space`: sprint
-- `E`: interact with signal wisps, stations, and guild shrines
-- `F`: fullscreen
+- `/game`: Option Oracle trading cockpit
+- Trading Desk: watchlist, paper option chain, equity curve, active model, paper trades
+- Model Lab: choose architecture, input dimensions, optimizer, and deploy the oracle
+- Leagues: paper leaderboard and daily learning challenges
+- Broker Vault: encrypted Tradier connection and gated single-leg order preview/placement
 
-Gather signal wisps, run paper contract drills, train the oracle, scan a symbol, then optionally preview a single-leg call/put order. Broker preview and placement controls are available after login and Tradier connection.
+Run paper drills, train the oracle, scan a symbol, click contracts to simulate paper outcomes, then optionally preview a single-leg call/put order through the broker vault. Broker preview and placement controls are available after login and Tradier connection.
 
-The oracle improves from labeled outcomes. In the current game loop, players gather simulated signal memories, run paper contract drills, and can record later call/put results after a scan. A live historical market-data ingestion pass is still needed before treating predictions as research-grade trading signals.
+The oracle improves from labeled outcomes. In the current loop, players run paper drills, simulate contract decisions, and record later call/put results after a scan. A live historical market-data ingestion pass is still needed before treating predictions as research-grade trading signals.
 
 ## Deploy
 

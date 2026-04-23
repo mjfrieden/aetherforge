@@ -8,6 +8,7 @@ function sanitizeGameState(value) {
   const profession = state.profession && typeof state.profession === "object" ? state.profession : {};
   const forecast = profession.forecast && typeof profession.forecast === "object" ? profession.forecast : null;
   const forecastFeatures = forecast?.features && typeof forecast.features === "object" ? forecast.features : {};
+  const cockpit = state.cockpit && typeof state.cockpit === "object" ? state.cockpit : {};
   const roster = Array.isArray(state.roster)
     ? state.roster.slice(0, 8).map((creature) => ({
         id: String(creature?.id || "").slice(0, 32),
@@ -54,6 +55,48 @@ function sanitizeGameState(value) {
             },
           }
         : null,
+    },
+    cockpit: {
+      balance: Math.max(0, Math.min(100000000, Number(cockpit.balance || 10000))),
+      initialBalance: Math.max(0, Math.min(100000000, Number(cockpit.initialBalance || 10000))),
+      paperMode: cockpit.paperMode === "shadow" ? "shadow" : "paper",
+      pnlHistory: Array.isArray(cockpit.pnlHistory)
+        ? cockpit.pnlHistory.slice(-24).map((point) => ({
+            time: String(point?.time || "").slice(0, 16),
+            value: Math.max(0, Math.min(100000000, Number(point?.value || 0))),
+          }))
+        : [],
+      trades: Array.isArray(cockpit.trades)
+        ? cockpit.trades.slice(0, 20).map((trade) => ({
+            id: String(trade?.id || "").slice(0, 80),
+            time: String(trade?.time || "").slice(0, 16),
+            symbol: String(trade?.symbol || "").toUpperCase().slice(0, 12),
+            optionSymbol: String(trade?.optionSymbol || "").toUpperCase().slice(0, 24),
+            side: trade?.side === "put" ? "put" : "call",
+            debit: Math.max(0, Math.min(1000000, Number(trade?.debit || 0))),
+            quantity: Math.max(1, Math.min(1000, Number.parseInt(String(trade?.quantity || 1), 10) || 1)),
+            pnl: Math.max(-100000000, Math.min(100000000, Number(trade?.pnl || 0))),
+            score: Math.max(0, Math.min(1, Number(trade?.score || 0))),
+          }))
+        : [],
+      pipeline:
+        cockpit.pipeline && typeof cockpit.pipeline === "object"
+          ? {
+              architecture: String(cockpit.pipeline.architecture || "Random Forest").slice(0, 48),
+              architectureType: String(cockpit.pipeline.architectureType || "Ensemble").slice(0, 48),
+              optimizer: String(cockpit.pipeline.optimizer || "AdamW").slice(0, 48),
+              features: Array.isArray(cockpit.pipeline.features)
+                ? cockpit.pipeline.features
+                    .filter((feature) => ["momentum", "volatility", "sentiment", "liquidity", "iv_rank"].includes(String(feature)))
+                    .slice(0, 5)
+                : ["momentum", "volatility", "liquidity"],
+            }
+          : {
+              architecture: "Random Forest",
+              architectureType: "Ensemble",
+              optimizer: "AdamW",
+              features: ["momentum", "volatility", "liquidity"],
+            },
     },
     essence: {
       momentum: Math.max(0, Math.min(999, Number(state.essence?.momentum || 0))),

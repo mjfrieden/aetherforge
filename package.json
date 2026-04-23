@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "A multi-user cloud-temple trading game with per-user AI training and Tradier sandbox-first broker integration.",
+  "description": "A multiplayer options trading and learning cockpit with per-user AI training and Tradier sandbox-first broker integration.",
   "scripts": {
     "dev": "vite --host 0.0.0.0 --port 5173",
     "build": "vite build",
@@ -18,8 +18,5 @@
     "typescript": "^6.0.3",
     "vite": "^8.0.9",
     "wrangler": "^4.84.1"
-  },
-  "dependencies": {
-    "phaser": "^3.90.0"
   }
 }
