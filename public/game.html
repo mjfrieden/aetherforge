@@ -4,9 +4,9 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Cumulonimbus | Option Oracle</title>
-    <script type="module" crossorigin src="/assets/game-D90k36yL.js"></script>
+    <script type="module" crossorigin src="/assets/game-DtL_ZFGa.js"></script>
     <link rel="modulepreload" crossorigin href="/assets/api-2BZ-9_vN.js">
-    <link rel="stylesheet" crossorigin href="/assets/styles-CYe4zOfF.css">
+    <link rel="stylesheet" crossorigin href="/assets/styles-Bapq9rCI.css">
   </head>
   <body class="game-body">
     <main class="oracle-shell">
@@ -49,7 +49,7 @@
         <header class="oracle-topbar">
           <div>
             <p class="eyebrow">Cumulonimbus paper arena</p>
-            <h1>Options Trading Desk</h1>
+            <h1>Trading Desk</h1>
           </div>
           <div class="account-strip" aria-label="Account summary">
             <dl>
@@ -74,15 +74,9 @@
         </header>
 
         <section class="view-panel active" id="view-desk" data-view-panel="desk">
-          <div class="desk-grid">
-            <section class="market-column" aria-label="Market watch">
-              <div class="section-heading">
-                <div>
-                  <p class="eyebrow">Watchlist</p>
-                  <h2>Market Watch</h2>
-                </div>
-                <button id="refresh-market-btn" type="button" title="Refresh symbols" aria-label="Refresh symbols">↻</button>
-              </div>
+          <section class="trade-command" aria-label="Trading command center">
+            <div class="command-symbol">
+              <p class="eyebrow">Command Entry</p>
               <div class="symbol-search">
                 <label>
                   Symbol
@@ -90,7 +84,51 @@
                 </label>
                 <button id="scan-symbol-btn" type="button">Scan</button>
               </div>
+            </div>
+            <div class="decision-console">
+              <div>
+                <p class="eyebrow">Current Read</p>
+                <h2 id="decision-action">Awaiting Scan</h2>
+                <p id="decision-copy">Build labels, deploy a model, then let the desk score call, put, or no-trade.</p>
+              </div>
+              <span id="oracle-class">No scan</span>
+            </div>
+            <div class="mission-meters" aria-label="Session meters">
+              <div>
+                <dt>Regime</dt>
+                <dd id="market-regime">Neutral</dd>
+              </div>
+              <div>
+                <dt>Risk</dt>
+                <dd id="risk-read">Guarded</dd>
+              </div>
+              <div>
+                <dt>XP</dt>
+                <dd id="xp-progress">0 / 140</dd>
+              </div>
+            </div>
+          </section>
+
+          <div class="desk-grid">
+            <section class="market-column" aria-label="Market radar">
+              <div class="section-heading">
+                <div>
+                  <p class="eyebrow">Market Radar</p>
+                  <h2>Watchlist</h2>
+                </div>
+                <button id="refresh-market-btn" type="button" title="Refresh symbols" aria-label="Refresh symbols">↻</button>
+              </div>
               <div class="watchlist" id="watchlist"></div>
+              <div class="radar-tiles" aria-label="Underlying conditions">
+                <div>
+                  <dt>Price</dt>
+                  <dd id="underlying-price">$512.00</dd>
+                </div>
+                <div>
+                  <dt>Move</dt>
+                  <dd id="expected-move">+0.0%</dd>
+                </div>
+              </div>
               <div class="coach-note" id="coach-note">
                 Train a model, then scan a symbol. The coach will flag liquidity, volatility, and no-trade risk.
               </div>
@@ -110,7 +148,7 @@
               <div class="equity-chart" id="equity-chart" aria-label="Equity curve"></div>
               <div class="chain-head">
                 <div>
-                  <p class="eyebrow">Option chain</p>
+                  <p class="eyebrow">Contract Board</p>
                   <h2 id="chain-title">SPY Contracts</h2>
                 </div>
                 <span id="data-freshness">Synthetic paper feed</span>
@@ -121,7 +159,7 @@
             <section class="model-column" aria-label="Active model">
               <div class="section-heading">
                 <div>
-                  <p class="eyebrow">Active oracle</p>
+                  <p class="eyebrow">Active Oracle</p>
                   <h2 id="model-name">Cloudspire Oracle</h2>
                 </div>
                 <button id="open-lab-btn" type="button">Tune</button>
@@ -129,6 +167,11 @@
               <div class="model-score">
                 <span id="model-accuracy">Untrained</span>
                 <small id="model-brier">Collect labeled outcomes</small>
+              </div>
+              <div class="risk-checklist" aria-label="Trade guardrails">
+                <div><span></span><strong>Liquidity first</strong><small>Volume and open interest before score.</small></div>
+                <div><span></span><strong>Premium sanity</strong><small>High IV can make correct calls lose.</small></div>
+                <div><span></span><strong>No-trade wins</strong><small>Flat is a position when edge is weak.</small></div>
               </div>
               <div class="importance-list" id="importance-list"></div>
               <div class="signal-tools">
@@ -144,17 +187,16 @@
             <div>
               <div class="section-heading">
                 <div>
-                  <p class="eyebrow">Recent inference</p>
-                  <h2>Oracle Read</h2>
+                  <p class="eyebrow">Decision Trace</p>
+                  <h2>Why The Oracle Leaned</h2>
                 </div>
-                <span id="oracle-class">No scan</span>
               </div>
               <div class="inference-strip" id="inference-strip"></div>
             </div>
             <div>
               <div class="section-heading">
                 <div>
-                  <p class="eyebrow">Trade journal</p>
+                  <p class="eyebrow">Trade Journal</p>
                   <h2>Last Paper Trades</h2>
                 </div>
                 <span id="trade-count">0 trades</span>

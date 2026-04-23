@@ -230,6 +230,13 @@ const el = {
   orderConfirm: byId<HTMLInputElement>("order-confirm"),
   placeOrder: byId<HTMLButtonElement>("place-order-btn"),
   orderStatus: byId<HTMLElement>("order-status"),
+  decisionAction: byId<HTMLElement>("decision-action"),
+  decisionCopy: byId<HTMLElement>("decision-copy"),
+  marketRegime: byId<HTMLElement>("market-regime"),
+  riskRead: byId<HTMLElement>("risk-read"),
+  xpProgress: byId<HTMLElement>("xp-progress"),
+  underlyingPrice: byId<HTMLElement>("underlying-price"),
+  expectedMove: byId<HTMLElement>("expected-move"),
 };
 
 function byId<T extends HTMLElement>(id: string): T | null {
@@ -362,6 +369,40 @@ function setStatus(target: HTMLElement | null, message: string, tone: "error" | 
   target.textContent = message;
   target.classList.toggle("error", tone === "error");
   target.classList.toggle("success", tone === "success");
+}
+
+function marketRegime(features: Record<EssenceKey, number>) {
+  if (features.volatility > 0.58) return "Stormy";
+  if (features.momentum > 0.32 && features.sentiment > -0.15) return "Risk-on";
+  if (features.momentum < -0.32 || features.sentiment < -0.45) return "Defensive";
+  return "Balanced";
+}
+
+function riskRead(features: Record<EssenceKey, number>, forecast: ForecastRecord | null) {
+  if (features.iv_rank > 0.54) return "High IV";
+  if (features.liquidity < -0.28) return "Thin Tape";
+  if (!forecast || forecast.contract === "wait" || forecast.probability < 0.58) return "Guarded";
+  return "Tradable";
+}
+
+function decisionText(forecast: ForecastRecord | null) {
+  if (!forecast) {
+    return {
+      action: "Awaiting Scan",
+      copy: "Pick a symbol, scan the tape, then compare edge against liquidity and premium.",
+    };
+  }
+  if (forecast.contract === "wait") {
+    return {
+      action: "No-Trade Watch",
+      copy: "The desk is not seeing enough edge yet. Preserve paper capital and collect cleaner labels.",
+    };
+  }
+  const side = forecast.contract === "call" ? "Call Bias" : "Put Hedge";
+  return {
+    action: `${side} ${Math.round(forecast.probability * 100)}%`,
+    copy: `${forecast.symbol} has a ${forecast.class.replace("_", " ")} read. Check spread, IV, and sizing before any fill.`,
+  };
 }
 
 function gainXp(amount: number) {
@@ -682,6 +723,9 @@ function orderPayload() {
 
 function render() {
   const dayPnl = state.balance - state.initialBalance;
+  const quote = getQuote(state.selectedSymbol);
+  const features = buildFeatures();
+  const decision = decisionText(state.forecast);
   if (el.sessionChip) el.sessionChip.textContent = session?.user?.display_name || "Trader";
   if (el.equity) el.equity.textContent = money(state.balance);
   if (el.dayPnl) {
@@ -691,6 +735,17 @@ function render() {
   }
   if (el.level) el.level.textContent = String(state.level);
   if (el.rank) el.rank.textContent = state.rank;
+  if (el.decisionAction) el.decisionAction.textContent = decision.action;
+  if (el.decisionCopy) el.decisionCopy.textContent = decision.copy;
+  if (el.marketRegime) el.marketRegime.textContent = marketRegime(features);
+  if (el.riskRead) el.riskRead.textContent = riskRead(features, state.forecast);
+  if (el.xpProgress) el.xpProgress.textContent = `${state.xp} / ${state.level * 140}`;
+  if (el.underlyingPrice) el.underlyingPrice.textContent = money(quote.price);
+  if (el.expectedMove) {
+    el.expectedMove.textContent = pct(quote.changePercent);
+    el.expectedMove.classList.toggle("positive", quote.changePercent >= 0);
+    el.expectedMove.classList.toggle("negative", quote.changePercent < 0);
+  }
   if (el.portfolioTitle) el.portfolioTitle.textContent = `${state.paperMode === "paper" ? "Paper" : "Shadow"} Portfolio Velocity`;
   if (el.chainTitle) el.chainTitle.textContent = `${state.selectedSymbol} Contracts`;
   if (el.dataFreshness) el.dataFreshness.textContent = `Synthetic paper feed - ${new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`;
@@ -765,8 +820,10 @@ function renderChain() {
           <span class="contract-type ${option.type}">${option.type === "call" ? "C" : "P"}</span>
           <span><strong>${money(option.strike)}</strong><small>${option.expiration}</small></span>
           <span><strong>${money(option.lastPrice)}</strong><small>IV ${(option.impliedVolatility * 100).toFixed(0)}%</small></span>
-          <span><strong>${option.volume.toLocaleString()}</strong><small>Vol</small></span>
-          <span class="score-bar"><i class="${widthClass(option.predictionScore * 100)}"></i></span>
+          <span><strong>${option.openInterest.toLocaleString()}</strong><small>OI / ${option.volume.toLocaleString()} vol</small></span>
+          <span class="edge-cell"><strong>${Math.round(option.predictionScore * 100)}%</strong><small>Edge</small><span class="score-bar"><i class="${widthClass(
+            option.predictionScore * 100,
+          )}"></i></span></span>
         </button>
       `,
     )
@@ -827,10 +884,10 @@ function renderInference() {
     return;
   }
   el.inferenceStrip.innerHTML = `
-    <div><dt>Symbol</dt><dd>${forecast.symbol}</dd></div>
-    <div><dt>Contract</dt><dd>${forecast.contract.toUpperCase()}</dd></div>
+    <div><dt>Bias</dt><dd>${forecast.contract.toUpperCase()}</dd><small>${forecast.symbol}</small></div>
     <div><dt>Confidence</dt><dd>${(forecast.probability * 100).toFixed(0)}%</dd></div>
-    <div><dt>Class</dt><dd>${forecast.class.replace("_", " ")}</dd></div>
+    <div><dt>Liquidity</dt><dd>${Math.round(((forecast.features.liquidity + 1) / 2) * 100)}%</dd></div>
+    <div><dt>IV Rank</dt><dd>${Math.round(((forecast.features.iv_rank + 1) / 2) * 100)}%</dd></div>
   `;
 }
 
