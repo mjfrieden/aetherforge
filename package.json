@@ -1,16 +1,16 @@
 {
-  "name": "aetherforge",
+  "name": "cumulonimbus",
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "A multiplayer options trading and learning cockpit with per-user AI training and Tradier sandbox-first broker integration.",
+  "description": "A multiplayer options replay and learning cockpit with per-user model training and Tradier sandbox-first broker integration.",
   "scripts": {
     "dev": "vite --host 0.0.0.0 --port 5173",
     "build": "vite build",
     "dev:pages": "npm run build && wrangler pages dev public --port 8787",
     "test": "node --test",
-    "migrate:local": "wrangler d1 execute aetherforge-db --local --file migrations/0001_init.sql",
-    "migrate:remote": "wrangler d1 execute aetherforge-db --remote --file migrations/0001_init.sql",
+    "migrate:local": "wrangler d1 execute aetherforge-db --local --file migrations/0001_init.sql && wrangler d1 execute aetherforge-db --local --file migrations/0002_research.sql",
+    "migrate:remote": "wrangler d1 execute aetherforge-db --remote --file migrations/0001_init.sql && wrangler d1 execute aetherforge-db --remote --file migrations/0002_research.sql",
     "deploy": "npm run build && wrangler pages deploy public --project-name aetherforge"
   },
   "devDependencies": {

@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Cumulonimbus | Option Oracle</title>
+    <title>Cumulonimbus</title>
     <link rel="stylesheet" href="/src/styles.css">
   </head>
   <body class="game-body">
@@ -28,14 +28,14 @@
           </span>
           <span class="brand-copy">
             <strong>Cumulonimbus</strong>
-            <small>Option Oracle</small>
+            <small>Replay Desk</small>
           </span>
         </a>
         <nav class="rail-nav" aria-label="Workspace">
-          <button class="active" type="button" data-view="desk">Trading Desk</button>
+          <button class="active" type="button" data-view="desk">Mission Control</button>
+          <button type="button" data-view="vault">Trade Detail</button>
           <button type="button" data-view="lab">Model Lab</button>
-          <button type="button" data-view="league">Leagues</button>
-          <button type="button" data-view="vault">Broker Vault</button>
+          <button type="button" data-view="league">Arena</button>
         </nav>
         <div class="rail-footer">
           <span id="session-chip">Loading</span>
@@ -46,8 +46,8 @@
       <section class="oracle-workspace" aria-label="Options trading cockpit">
         <header class="oracle-topbar">
           <div>
-            <p class="eyebrow">Cumulonimbus paper arena</p>
-            <h1>Trading Desk</h1>
+            <p class="eyebrow">Cumulonimbus replay arena</p>
+            <h1>Mission Control</h1>
           </div>
           <div class="account-strip" aria-label="Account summary">
             <dl>
@@ -87,7 +87,7 @@
               <div>
                 <p class="eyebrow">Current Read</p>
                 <h2 id="decision-action">Awaiting Scan</h2>
-                <p id="decision-copy">Build labels, deploy a model, then let the desk score call, put, or no-trade.</p>
+                <p id="decision-copy">Capture a replay scan, train on resolved outcomes, then let the desk score call, put, or no-trade.</p>
               </div>
               <span id="oracle-class">No scan</span>
             </div>
@@ -107,12 +107,35 @@
             </div>
           </section>
 
+          <section class="mission-brief" aria-label="Ranked setup board">
+            <section class="setup-panel">
+              <div class="section-heading">
+                <div>
+                  <p class="eyebrow">Ranked Setups</p>
+                  <h2>What Deserves Attention</h2>
+                </div>
+                <button id="open-lab-btn" type="button">Refine Model</button>
+              </div>
+              <div class="setup-list" id="setup-list"></div>
+            </section>
+
+            <section class="objective-panel">
+              <div class="section-heading">
+                <div>
+                  <p class="eyebrow">Operator Loop</p>
+                  <h2>What To Do Next</h2>
+                </div>
+              </div>
+              <div class="objective-list" id="objective-list"></div>
+            </section>
+          </section>
+
           <div class="desk-grid">
             <section class="market-column" aria-label="Market radar">
               <div class="section-heading">
                 <div>
-                  <p class="eyebrow">Market Radar</p>
-                  <h2>Watchlist</h2>
+                  <p class="eyebrow">Watch Radar</p>
+                  <h2>Market Tape</h2>
                 </div>
                 <button id="refresh-market-btn" type="button" title="Refresh symbols" aria-label="Refresh symbols">↻</button>
               </div>
@@ -128,14 +151,14 @@
                 </div>
               </div>
               <div class="coach-note" id="coach-note">
-                Train a model, then scan a symbol. The coach will flag liquidity, volatility, and no-trade risk.
+                Connect Tradier, capture replay scans, and let resolved outcomes teach the model what deserved a trade.
               </div>
             </section>
 
             <section class="primary-desk" aria-label="Portfolio and option chain">
               <div class="desk-chart-head">
                 <div>
-                  <p class="eyebrow">Paper account</p>
+                  <p class="eyebrow">Capital State</p>
                   <h2 id="portfolio-title">Portfolio Velocity</h2>
                 </div>
                 <div class="mode-toggle" role="group" aria-label="Trading mode">
@@ -149,7 +172,7 @@
                   <p class="eyebrow">Contract Board</p>
                   <h2 id="chain-title">SPY Contracts</h2>
                 </div>
-                <span id="data-freshness">Synthetic paper feed</span>
+                <span id="data-freshness">Replay feed not loaded</span>
               </div>
               <div class="option-chain" id="option-chain"></div>
             </section>
@@ -157,14 +180,14 @@
             <section class="model-column" aria-label="Active model">
               <div class="section-heading">
                 <div>
-                  <p class="eyebrow">Active Oracle</p>
-                  <h2 id="model-name">Cloudspire Oracle</h2>
+                  <p class="eyebrow">Active Model</p>
+                  <h2 id="model-name">Cumulonimbus Replay Model</h2>
                 </div>
                 <button id="open-lab-btn" type="button">Tune</button>
               </div>
               <div class="model-score">
                 <span id="model-accuracy">Untrained</span>
-                <small id="model-brier">Collect labeled outcomes</small>
+                <small id="model-brier">Collect resolved replay outcomes</small>
               </div>
               <div class="risk-checklist" aria-label="Trade guardrails">
                 <div><span></span><strong>Liquidity first</strong><small>Volume and open interest before score.</small></div>
@@ -173,11 +196,11 @@
               </div>
               <div class="importance-list" id="importance-list"></div>
               <div class="signal-tools">
-                <button id="paper-drill-btn" type="button">Run Paper Drill</button>
-                <button id="record-call-btn" type="button">Record Call Win</button>
-                <button id="record-put-btn" type="button">Record Put Win</button>
+                <button id="paper-drill-btn" type="button">Refresh Replay Store</button>
+                <button id="record-call-btn" type="button">Capture Paper Scan</button>
+                <button id="record-put-btn" type="button">Capture Shadow Scan</button>
               </div>
-              <p class="status" id="forecast-status">Paper drills create training labels without touching a broker account.</p>
+              <p class="status" id="forecast-status">Scans create timestamped replay decisions. Outcomes resolve when fresher market snapshots arrive.</p>
             </section>
           </div>
 
@@ -205,10 +228,28 @@
         </section>
 
         <section class="view-panel" id="view-lab" data-view-panel="lab">
+          <section class="lab-brief">
+            <section class="lab-summary-panel">
+              <div class="section-heading">
+                <div>
+                  <p class="eyebrow">Research Workspace</p>
+                  <h2>Build, Test, Compare</h2>
+                </div>
+                <span id="data-readiness">Research mode</span>
+              </div>
+              <div class="lab-summary-grid" id="lab-summary-grid"></div>
+            </section>
+            <section class="lab-notebook-panel">
+              <p class="eyebrow">Hypothesis Log</p>
+              <h2>Next Experiment</h2>
+              <div class="lab-note-list" id="lab-note-list"></div>
+            </section>
+          </section>
+
           <div class="lab-layout">
             <section class="lab-palette" aria-label="Model components">
               <p class="eyebrow">Model Lab</p>
-              <h2>Build Your Oracle</h2>
+                  <h2>Build Your Model</h2>
               <div class="lab-group">
                 <h3>Core Engine</h3>
                 <div class="choice-list" id="architecture-list"></div>
@@ -253,8 +294,8 @@
                 </div>
               </div>
               <div class="console-log" id="console-log"></div>
-              <button id="train-model-btn" type="button">Deploy Oracle</button>
-              <p class="status" id="model-status">Choose inputs, run paper drills, then deploy a personal model.</p>
+              <button id="train-model-btn" type="button">Train Replay Model</button>
+              <p class="status" id="model-status">Choose features, wait for resolved replay outcomes, then train a personal model.</p>
             </section>
           </div>
 
@@ -265,7 +306,7 @@
                   <p class="eyebrow">Data Curation</p>
                   <h2>Real-World Feeds</h2>
                 </div>
-                <span id="data-readiness">Research mode</span>
+                <span id="lab-feed-mode">Point-in-time only</span>
               </div>
               <div class="provider-grid" id="provider-grid"></div>
               <div class="google-finance-note">
@@ -296,63 +337,93 @@
               <div class="validation-grid" id="validation-grid"></div>
               <div class="label-lab" id="label-lab"></div>
             </section>
+
+            <section class="validation-lab" aria-label="Event overlays">
+              <div class="section-heading">
+                <div>
+                  <p class="eyebrow">Event Overlay</p>
+                  <h2>Timestamped Notes</h2>
+                </div>
+                <span>After replay capture</span>
+              </div>
+              <form id="event-form" class="event-form">
+                <label>
+                  Title
+                  <input id="event-title" maxlength="120" placeholder="FOMC, earnings, macro shock">
+                </label>
+                <label>
+                  Source
+                  <input id="event-source" maxlength="80" placeholder="Manual note">
+                </label>
+                <label>
+                  Why it matters
+                  <textarea id="event-body" rows="4" maxlength="1200" placeholder="Only record context that existed before the decision."></textarea>
+                </label>
+                <button type="submit">Save Event Overlay</button>
+              </form>
+              <p class="status" id="event-status">Attach macro or news context only after replay snapshots exist.</p>
+            </section>
           </section>
         </section>
 
         <section class="view-panel" id="view-league" data-view-panel="league">
-          <div class="league-layout">
+          <div class="arena-layout">
+            <section class="arena-summary-panel">
+              <p class="eyebrow">Season Progress</p>
+              <h2>Trader Progression</h2>
+              <div class="arena-stat-grid" id="arena-stat-grid"></div>
+            </section>
             <section>
               <p class="eyebrow">Weekly season</p>
-              <h2>Paper League</h2>
+              <h2>Leaderboard</h2>
               <div class="league-board" id="leaderboard"></div>
             </section>
             <section class="challenge-panel">
               <p class="eyebrow">Learning challenges</p>
-              <h2>Today’s Arena</h2>
+              <h2>Daily Quests</h2>
               <div class="challenge-list" id="challenge-list"></div>
+            </section>
+            <section class="replay-panel">
+              <p class="eyebrow">Replay Modes</p>
+              <h2>Train Under Pressure</h2>
+              <div class="replay-list" id="replay-list"></div>
             </section>
           </div>
         </section>
 
         <section class="view-panel" id="view-vault" data-view-panel="vault">
-          <div class="vault-layout">
-            <section class="broker-panel">
+          <div class="detail-layout">
+            <section class="detail-stage">
               <div class="section-heading">
                 <div>
-                  <p class="eyebrow">Tradier Vault</p>
-                  <h2>Broker Link</h2>
+                  <p class="eyebrow">Trade Detail</p>
+                  <h2>Selected Contract</h2>
                 </div>
-                <span class="mode-badge" id="broker-mode">Disconnected</span>
+                <span id="detail-focus-badge">Awaiting selection</span>
               </div>
-              <form id="tradier-form">
-                <label>
-                  Access token
-                  <input id="tradier-token" type="password" autocomplete="off" placeholder="Stored encrypted server-side">
-                </label>
-                <label>
-                  Account ID
-                  <input id="tradier-account" autocomplete="off">
-                </label>
-                <label>
-                  Mode
-                  <select id="tradier-mode">
-                    <option value="sandbox">Sandbox</option>
-                    <option value="live">Live</option>
-                  </select>
-                </label>
-                <button type="submit">Save Broker Link</button>
-              </form>
-              <p class="status" id="tradier-status">Sandbox first. Live placement remains deployment-gated.</p>
+              <div class="selected-contract-card" id="selected-contract-card"></div>
+              <div class="scenario-grid" id="scenario-grid"></div>
+              <section class="comparison-panel">
+                <div class="section-heading">
+                  <div>
+                    <p class="eyebrow">Comparable Contracts</p>
+                    <h2>Choose Your Expression</h2>
+                  </div>
+                </div>
+                <div class="comparison-list" id="comparison-list"></div>
+              </section>
             </section>
 
             <section class="order-panel">
               <div class="section-heading">
                 <div>
-                  <p class="eyebrow">Order ticket</p>
-                  <h2>Single-Leg Preview</h2>
+                  <p class="eyebrow">Replay Ticket</p>
+                  <h2>Commit Or Pass</h2>
                 </div>
-                <span id="order-risk-badge">Limit only for placement</span>
+                <span id="order-risk-badge">Select before execution</span>
               </div>
+              <button id="paper-trade-btn" type="button">Open Paper Position</button>
+              <p class="status" id="paper-trade-status">Choose a contract from Mission Control or this detail screen.</p>
               <form id="order-form">
                 <input id="order-asset" type="hidden" value="option">
                 <input id="order-side" type="hidden" value="buy_to_open">
@@ -383,20 +454,49 @@
                     <input id="order-price" type="number" min="0.01" step="0.01" value="1.00">
                   </label>
                 </div>
-                <button type="submit">Preview Through Tradier</button>
+                <button type="submit">Preview Broker Ticket</button>
                 <label>
                   Confirmation phrase
                   <input id="order-confirm" autocomplete="off" placeholder="PLACE PAPER ORDER">
                 </label>
-                <button id="place-order-btn" type="button">Place Gated Order</button>
+                <button id="place-order-btn" type="button">Place Gated Broker Order</button>
               </form>
               <p class="status" id="order-status">No broker preview yet.</p>
+            </section>
+
+            <section class="broker-panel">
+              <div class="section-heading">
+                <div>
+                  <p class="eyebrow">Broker Relay</p>
+                  <h2>Tradier Vault</h2>
+                </div>
+                <span class="mode-badge" id="broker-mode">Disconnected</span>
+              </div>
+              <form id="tradier-form">
+                <label>
+                  Access token
+                  <input id="tradier-token" type="password" autocomplete="off" placeholder="Stored encrypted server-side">
+                </label>
+                <label>
+                  Account ID
+                  <input id="tradier-account" autocomplete="off">
+                </label>
+                <label>
+                  Mode
+                  <select id="tradier-mode">
+                    <option value="sandbox">Sandbox</option>
+                    <option value="live">Live</option>
+                  </select>
+                </label>
+                <button type="submit">Save Broker Link</button>
+              </form>
+              <p class="status" id="tradier-status">Sandbox first. Live placement remains deployment-gated.</p>
             </section>
           </div>
         </section>
       </section>
     </main>
-    <p class="legal">Educational simulation. Not investment advice. Paper results are training feedback, not a promise of live market performance.</p>
+    <p class="legal">Educational simulation. Not investment advice. Replay outcomes are research feedback, not a promise of live market performance.</p>
     <script type="module" src="/src/game/main.ts"></script>
   </body>
 </html>

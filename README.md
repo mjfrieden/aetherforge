@@ -1,22 +1,16 @@
-# Option Oracle Arena
+# Cumulonimbus
 
-Option Oracle Arena is a multi-user options trading and learning cockpit where players train a personal oracle model, practice short-term call/put decisions in paper mode, compare progress on leaderboards, and route Tradier previews through a secure server-side broker bridge.
+Cumulonimbus is a multi-user options replay and learning cockpit where players capture timestamped option-chain snapshots, train a personal replay model on resolved outcomes, compare out-of-sample scores on leaderboards, and route Tradier previews through a secure server-side broker bridge.
 
-The current app is a Vite/TypeScript cockpit inspired by the `option-oracle/` prototype. The first screen is the trading desk: watchlist, synthetic paper option chain, equity curve, active model, paper trade journal, model lab, paper league, and broker vault. The fantasy layer is now flavor and progression, not the main interaction.
+The current app is a Vite/TypeScript cockpit with a replay-first workflow: watchlist refresh, server-stored option-chain snapshots, paper and shadow decisions, later outcome resolution, a walk-forward model lab, event overlays, and a broker vault. The game layer now lives in progression and challenges rather than synthetic market simulation.
 
 Live app: https://aetherforge-a5i.pages.dev
 
 Public GitHub repo: https://github.com/mjfrieden/aetherforge
 
-## What This Builds From
+## Project Notes
 
-I evaluated the sibling projects and the later `option-oracle/` prototype:
-
-- Orographic has the deployable Cloudflare Pages shell, Scout -> Forge -> Council engine, and server-side Tradier pattern.
-- Cirrus has the stronger playbook/no-trade-gate discipline and live-versus-shadow research ledger.
-- Option Oracle has the better product center: a serious options desk, model architect, paper P&L loop, and league framing.
-
-The full write-up lives in [docs/project-evaluation.md](docs/project-evaluation.md).
+The lineage and earlier sibling-project evaluation live in [docs/project-evaluation.md](docs/project-evaluation.md). The user-facing product name is now simply Cumulonimbus.
 
 ## Security Model
 
@@ -80,15 +74,15 @@ Open the local Pages URL shown by Wrangler.
 
 - `/login`: dedicated login screen
 - `/register`: dedicated account creation screen
-- `/game`: Option Oracle trading cockpit
-- Trading Desk: watchlist, paper option chain, equity curve, active model, paper trades
-- Model Lab: choose architecture, input dimensions, optimizer, and deploy the oracle
-- Leagues: paper leaderboard and daily learning challenges
+- `/game`: Cumulonimbus replay cockpit
+- Mission Control: watchlist, replay option chain, equity curve, active model, and recent paper positions
+- Model Lab: choose feature inputs, train the replay model, inspect walk-forward metrics, and attach event overlays
+- Arena: leaderboard, replay challenges, and shadow-mode comparisons
 - Broker Vault: encrypted Tradier connection and gated single-leg order preview/placement
 
-Run paper drills, train the oracle, scan a symbol, click contracts to simulate paper outcomes, then optionally preview a single-leg call/put order through the broker vault. Broker preview and placement controls are available after login and Tradier connection.
+Connect Tradier, refresh the replay store, capture a paper or shadow scan, let a later market snapshot resolve the outcome, then train the replay model on those resolved decisions. Broker preview and placement controls are available after login and Tradier connection.
 
-The oracle improves from labeled outcomes. In the current loop, players run paper drills, simulate contract decisions, and record later call/put results after a scan. A live historical market-data ingestion pass is still needed before treating predictions as research-grade trading signals.
+The model now improves from normalized replay outcomes instead of client-side self-labeling. Event overlays are stored only after snapshots exist, and leaderboard rank comes from out-of-sample decision scoring rather than XP alone.
 
 ## Deploy
 

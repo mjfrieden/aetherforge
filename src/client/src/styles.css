@@ -1322,6 +1322,87 @@ button strong,
   margin-bottom: 12px;
 }
 
+.mission-brief {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(300px, 0.8fr);
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.setup-panel,
+.objective-panel,
+.lab-summary-panel,
+.lab-notebook-panel,
+.arena-summary-panel,
+.replay-panel,
+.detail-stage,
+.comparison-panel {
+  min-width: 0;
+  border: 1px solid rgba(186, 230, 253, 0.14);
+  border-radius: 8px;
+  padding: 14px;
+  background: rgba(5, 19, 16, 0.78);
+  box-shadow: inset 0 1px 0 rgba(246, 251, 247, 0.05);
+}
+
+.setup-list,
+.objective-list,
+.comparison-list,
+.lab-note-list,
+.replay-list {
+  display: grid;
+  gap: 8px;
+}
+
+.setup-row,
+.compare-row,
+.replay-row,
+.objective-row {
+  display: grid;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  border: 1px solid rgba(186, 230, 253, 0.12);
+  border-radius: 8px;
+  padding: 11px 12px;
+  background: rgba(1, 8, 7, 0.42);
+}
+
+.setup-row,
+.compare-row {
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  width: 100%;
+  text-align: left;
+}
+
+.setup-row.active,
+.compare-row.active,
+.option-row.active {
+  border-color: rgba(20, 199, 159, 0.5);
+  background: rgba(20, 199, 159, 0.11);
+}
+
+.setup-rank,
+.objective-row span {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
+  color: #02110d;
+  background: linear-gradient(180deg, #7dd3fc, #14c79f);
+  font-weight: 900;
+}
+
+.objective-row {
+  grid-template-columns: auto minmax(0, 1fr);
+}
+
+.objective-row strong,
+.objective-row small {
+  grid-column: 2;
+}
+
 .command-symbol,
 .decision-console,
 .mission-meters {
@@ -1645,6 +1726,38 @@ dt,
   grid-template-columns: minmax(250px, 310px) minmax(0, 1fr) minmax(280px, 350px);
 }
 
+.lab-brief {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(300px, 0.85fr);
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.lab-summary-grid,
+.arena-stat-grid,
+.scenario-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.lab-summary-grid div,
+.arena-stat-grid div,
+.scenario-grid div,
+.selected-metrics div {
+  border: 1px solid rgba(186, 230, 253, 0.12);
+  border-radius: 8px;
+  padding: 11px;
+  background: rgba(1, 8, 7, 0.42);
+}
+
+.lab-note-list div {
+  display: grid;
+  gap: 4px;
+  border-bottom: 1px solid rgba(186, 230, 253, 0.12);
+  padding-bottom: 8px;
+}
+
 .pipeline-canvas {
   border-color: rgba(186, 230, 253, 0.14);
   background:
@@ -1671,10 +1784,72 @@ dt,
 .provider-card span,
 #data-readiness,
 #context-budget,
-#leakage-badge {
+#leakage-badge,
+#lab-feed-mode {
   border-color: rgba(20, 199, 159, 0.26);
   color: #93f7d4;
   background: rgba(20, 199, 159, 0.08);
+}
+
+.arena-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 0.85fr) minmax(0, 1fr) minmax(0, 1fr);
+  gap: 12px;
+}
+
+.arena-layout .arena-summary-panel {
+  grid-column: 1 / -1;
+}
+
+.replay-row {
+  gap: 4px;
+}
+
+.detail-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(340px, 0.9fr);
+  gap: 12px;
+}
+
+.detail-stage {
+  display: grid;
+  gap: 12px;
+}
+
+.selected-contract-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 0.9fr);
+  gap: 12px;
+  border: 1px solid rgba(20, 199, 159, 0.22);
+  border-radius: 8px;
+  padding: 16px;
+  background:
+    linear-gradient(135deg, rgba(20, 199, 159, 0.12), rgba(125, 211, 252, 0.04)),
+    rgba(5, 19, 16, 0.86);
+}
+
+.selected-copy {
+  margin-top: 6px;
+  color: var(--muted);
+  font-size: 0.86rem;
+}
+
+.selected-metrics {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.scenario-grid {
+  grid-template-columns: 1fr 1fr;
+}
+
+#paper-trade-btn {
+  width: 100%;
+  margin-bottom: 10px;
+  color: #02110d;
+  border-color: rgba(20, 199, 159, 0.42);
+  background: linear-gradient(180deg, #4df0bd, #14c79f);
 }
 
 .legal {
@@ -1748,11 +1923,15 @@ dt,
 
   .oracle-topbar,
   .trade-command,
+  .mission-brief,
+  .lab-brief,
   .desk-grid,
   .lab-layout,
   .research-grid,
   .league-layout,
-  .vault-layout {
+  .vault-layout,
+  .arena-layout,
+  .detail-layout {
     grid-template-columns: 1fr;
   }
 
@@ -1821,9 +2000,12 @@ dt,
   .account-strip dl,
   .inference-strip,
   .mission-meters,
+  .lab-summary-grid,
+  .arena-stat-grid,
   .pipeline-metrics,
   .provider-grid,
-  .validation-grid {
+  .validation-grid,
+  .scenario-grid {
     grid-template-columns: 1fr 1fr;
   }
 
@@ -1872,6 +2054,13 @@ dt,
   }
 
   .radar-tiles {
+    grid-template-columns: 1fr;
+  }
+
+  .setup-row,
+  .compare-row,
+  .selected-contract-card,
+  .selected-metrics {
     grid-template-columns: 1fr;
   }
 }

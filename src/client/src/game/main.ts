@@ -1,164 +1,246 @@
 import { api, getSession, type SessionPayload } from "../api";
 
-type EssenceKey = "momentum" | "volatility" | "sentiment" | "liquidity" | "iv_rank";
-type ContractSide = "call" | "put" | "wait";
 type ViewName = "desk" | "lab" | "league" | "vault";
+type PaperMode = "paper" | "shadow";
+type DecisionType = "call" | "put" | "no_trade";
+type FeatureKey = "change_pct" | "intraday_range" | "atm_iv" | "liquidity" | "call_put_skew";
 
-type SignalSample = Record<EssenceKey, number> & { label: number };
-
-type ForecastRecord = {
-  symbol: string;
-  contract: ContractSide;
-  probability: number;
-  class: string;
-  features: Record<EssenceKey, number>;
-};
-
-type OptionContract = {
-  type: "call" | "put";
-  strike: number;
-  expiration: string;
-  lastPrice: number;
-  volume: number;
-  openInterest: number;
-  impliedVolatility: number;
-  predictionScore: number;
-  optionSymbol: string;
-};
-
-type WatchSymbol = {
+type QuoteRecord = {
   symbol: string;
   price: number;
   changePercent: number;
   sector: string;
+  snapshotAt: string;
 };
 
-type PaperTrade = {
+type OptionContract = {
+  optionSymbol: string;
+  type: "call" | "put";
+  strike: number;
+  expiration: string;
+  bid: number;
+  ask: number;
+  lastPrice: number;
+  mark: number;
+  volume: number;
+  openInterest: number;
+  impliedVolatility: number;
+  delta: number;
+  gamma: number;
+  theta: number;
+  vega: number;
+};
+
+type SnapshotRecord = {
   id: string;
-  time: string;
+  symbol: string;
+  expiration: string;
+  snapshotAt: string;
+  quote: QuoteRecord;
+  features: Record<FeatureKey, number>;
+  options: OptionContract[];
+};
+
+type SetupRecord = {
+  symbol: string;
+  snapshotId: string;
+  snapshotAt: string;
+  regime: string;
+  decision: DecisionType;
+  probability: number;
+  score: number;
+  engine: string;
+  optionSymbol: string;
+  debit: number;
+};
+
+type DecisionRecord = {
+  id: string;
+  snapshotId: string;
+  mode: PaperMode;
+  symbol: string;
+  decision: DecisionType;
+  probability: number;
+  score: number;
+  features: Record<FeatureKey, number>;
+  rationale: { engine?: string; noTradePressure?: number; selectedOptionSymbol?: string | null };
+  selectedOptionSymbol: string | null;
+};
+
+type OutcomeRecord = {
+  label: string;
+  score: number;
+  selectedReturn: number | null;
+  callReturn: number | null;
+  putReturn: number | null;
+  underlyingReturn: number | null;
+};
+
+type TradeRecord = {
+  id: string;
+  decisionId: string | null;
+  snapshotId: string;
+  mode: PaperMode;
   symbol: string;
   optionSymbol: string;
   side: "call" | "put";
-  debit: number;
   quantity: number;
-  pnl: number;
-  score: number;
+  entryPrice: number;
+  entryUnderlyingPrice: number;
+  entryScore: number;
+  status: "open" | "closed";
+  openedAt: string;
+  closedAt: string | null;
+  exitPrice: number;
+  pnl: number | null;
+  outcomeLabel: string | null;
+};
+
+type EventRecord = {
+  id: string;
+  snapshot_id: string | null;
+  symbol: string;
+  title: string;
+  body: string;
+  source: string;
+  created_at: string;
+};
+
+type ModelRecord = {
+  id: string;
+  name: string;
+  kind: string;
+  weights: Record<string, number>;
+  bias: number;
+  metrics: {
+    accuracy: number;
+    brier: number;
+    training_rows: number;
+    evaluation_rows?: number;
+    in_sample_accuracy?: number;
+    in_sample_brier?: number;
+    validation?: string;
+  };
+  features: FeatureKey[];
+};
+
+type DashboardPayload = {
+  watchlist: QuoteRecord[];
+  setups: SetupRecord[];
+  selectedSnapshot: SnapshotRecord | null;
+  latestDecision: DecisionRecord | null;
+  latestOutcome: OutcomeRecord | null;
+  trades: TradeRecord[];
+  events: EventRecord[];
+  summary: {
+    decisionCount: number;
+    avgScore: number | null;
+    noTradeWinRate: number | null;
+    shadowScore: number | null;
+    paperPnl: number;
+    openTrades: number;
+    balance: number;
+    equityHistory: Array<{ time: string; value: number }>;
+  };
+  model: ModelRecord | null;
+};
+
+type LeaderboardRecord = {
+  display_name: string;
+  evaluated_decisions: number;
+  avg_score: number | null;
+  no_trade_win_rate: number | null;
+  shadow_score: number | null;
 };
 
 type PipelineState = {
   architecture: string;
   architectureType: string;
   optimizer: string;
-  features: EssenceKey[];
+  features: FeatureKey[];
 };
 
-type CockpitState = {
-  level: number;
-  xp: number;
-  balance: number;
-  initialBalance: number;
-  rank: string;
+type AppState = {
   selectedSymbol: string;
-  samples: SignalSample[];
-  essence: Record<EssenceKey, number>;
-  forecast: ForecastRecord | null;
+  paperMode: PaperMode;
+  watchlist: QuoteRecord[];
+  setups: SetupRecord[];
+  selectedSnapshot: SnapshotRecord | null;
+  latestDecision: DecisionRecord | null;
+  latestOutcome: OutcomeRecord | null;
+  trades: TradeRecord[];
+  events: EventRecord[];
+  leaderboard: LeaderboardRecord[];
+  rank: string;
+  pipeline: PipelineState;
   modelReady: boolean;
   modelName: string;
-  modelMetrics: null | { accuracy: number; brier: number; training_rows: number; user_rows?: number };
-  featureImportance: Array<{ name: EssenceKey; value: number }>;
-  pnlHistory: Array<{ time: string; value: number }>;
-  trades: PaperTrade[];
-  pipeline: PipelineState;
-  paperMode: "paper" | "shadow";
+  modelMetrics: ModelRecord["metrics"] | null;
+  featureImportance: Array<{ name: FeatureKey; value: number }>;
+  summary: DashboardPayload["summary"];
+  connected: boolean;
+  message: string;
+  initialBalance: number;
 };
 
-const essenceKeys: EssenceKey[] = ["momentum", "volatility", "sentiment", "liquidity", "iv_rank"];
-const featureLabels: Record<EssenceKey, string> = {
-  momentum: "Momentum",
-  volatility: "Volatility",
-  sentiment: "Sentiment",
+const featureLabels: Record<FeatureKey, string> = {
+  change_pct: "Change %",
+  intraday_range: "Intraday Range",
+  atm_iv: "ATM IV",
   liquidity: "Liquidity",
-  iv_rank: "IV Rank",
+  call_put_skew: "Call/Put Skew",
 };
 
-const architectures = [
-  { id: "Random Forest", type: "Ensemble" },
-  { id: "Logistic Edge", type: "Interpretable" },
-  { id: "LSTM", type: "Sequence" },
-  { id: "Option-GPT", type: "Coach" },
-];
-
-const optimizers = ["AdamW", "SGD + Momentum", "Bayesian Sweep"];
-const challenges = [
-  { name: "Liquidity Gate", reward: "+40 XP", copy: "Choose a contract with tight spread assumptions and explain why thin OI is dangerous." },
-  { name: "IV Crush Drill", reward: "+60 XP", copy: "Find a setup where the correct answer is no trade because premium is too expensive." },
-  { name: "Single-Leg Sprint", reward: "+35 XP", copy: "Make one paper call or put decision, then record the outcome label." },
-];
-
-const dataProviders = [
-  {
-    name: "Tradier Market Data",
-    status: "Ready",
-    kind: "Quotes + options",
-    copy: "Best production lane for authenticated users: quotes, chains, and broker-aligned symbols stay server-side.",
-  },
-  {
-    name: "Google Finance Sheets",
-    status: "Import",
-    kind: "CSV learning feed",
-    copy: "Use `GOOGLEFINANCE` in Sheets, export CSV, then treat it as delayed educational OHLCV context.",
-  },
-  {
-    name: "Historical Replay Store",
-    status: "Next",
-    kind: "Walk-forward labels",
-    copy: "Persist option-chain snapshots so learners can test entries without future leakage.",
-  },
-  {
-    name: "News + Macro Overlay",
-    status: "Research",
-    kind: "Regime context",
-    copy: "Curate only timestamped context available before the decision bar.",
-  },
-];
-
-const labelRecipes = [
-  { name: "1D Direction", value: "Underlying close-to-close after signal." },
-  { name: "Option Payoff", value: "Contract mark at horizon minus entry debit." },
-  { name: "No-Trade Gate", value: "Reward abstention when spread, IV, or confidence is poor." },
-];
+const architectures = [{ id: "Replay Logistic", type: "Walk-forward" }];
+const optimizers = ["Gradient Descent"];
+const defaultWatchlist = ["SPY", "QQQ", "NVDA", "TSLA", "AAPL"];
 
 let csrfToken = "";
 let session: SessionPayload | null = null;
 let latestPreview: Record<string, unknown> | null = null;
+let selectedOptionSymbol = "";
 
-const state: CockpitState = {
-  level: 1,
-  xp: 0,
-  balance: 10000,
-  initialBalance: 10000,
-  rank: "-",
+const state: AppState = {
   selectedSymbol: "SPY",
-  samples: [],
-  essence: { momentum: 0, volatility: 0, sentiment: 0, liquidity: 0, iv_rank: 0 },
-  forecast: null,
-  modelReady: false,
-  modelName: "Cloudspire Oracle",
-  modelMetrics: null,
-  featureImportance: essenceKeys.map((name, index) => ({ name, value: [28, 24, 18, 16, 14][index] })),
-  pnlHistory: [
-    { time: "09:30", value: 10000 },
-    { time: "10:00", value: 10000 },
-    { time: "10:30", value: 10000 },
-  ],
-  trades: [],
-  pipeline: {
-    architecture: "Random Forest",
-    architectureType: "Ensemble",
-    optimizer: "AdamW",
-    features: ["momentum", "volatility", "liquidity"],
-  },
   paperMode: "paper",
+  watchlist: [],
+  setups: [],
+  selectedSnapshot: null,
+  latestDecision: null,
+  latestOutcome: null,
+  trades: [],
+  events: [],
+  leaderboard: [],
+  rank: "-",
+  pipeline: {
+    architecture: "Replay Logistic",
+    architectureType: "Walk-forward",
+    optimizer: "Gradient Descent",
+    features: ["change_pct", "intraday_range", "atm_iv", "liquidity"],
+  },
+  modelReady: false,
+  modelName: "Cumulonimbus Replay Model",
+  modelMetrics: null,
+  featureImportance: [
+    { name: "change_pct", value: 24 },
+    { name: "intraday_range", value: 20 },
+    { name: "atm_iv", value: 22 },
+    { name: "liquidity", value: 18 },
+    { name: "call_put_skew", value: 16 },
+  ],
+  summary: {
+    decisionCount: 0,
+    avgScore: null,
+    noTradeWinRate: null,
+    shadowScore: null,
+    paperPnl: 0,
+    openTrades: 0,
+    balance: 10000,
+    equityHistory: [{ time: "Start", value: 10000 }],
+  },
+  connected: false,
+  message: "Connect Tradier to start building the replay store.",
+  initialBalance: 10000,
 };
 
 const el = {
@@ -172,6 +254,8 @@ const el = {
   refreshMarket: byId<HTMLButtonElement>("refresh-market-btn"),
   scanSymbol: byId<HTMLButtonElement>("scan-symbol-btn"),
   watchlist: byId<HTMLElement>("watchlist"),
+  setupList: byId<HTMLElement>("setup-list"),
+  objectiveList: byId<HTMLElement>("objective-list"),
   coachNote: byId<HTMLElement>("coach-note"),
   portfolioTitle: byId<HTMLElement>("portfolio-title"),
   equityChart: byId<HTMLElement>("equity-chart"),
@@ -204,15 +288,20 @@ const el = {
   consoleLog: byId<HTMLElement>("console-log"),
   trainModel: byId<HTMLButtonElement>("train-model-btn"),
   modelStatus: byId<HTMLElement>("model-status"),
+  labSummaryGrid: byId<HTMLElement>("lab-summary-grid"),
+  labNoteList: byId<HTMLElement>("lab-note-list"),
   dataReadiness: byId<HTMLElement>("data-readiness"),
+  labFeedMode: byId<HTMLElement>("lab-feed-mode"),
   providerGrid: byId<HTMLElement>("provider-grid"),
   contextBudget: byId<HTMLElement>("context-budget"),
   contextMap: byId<HTMLElement>("context-map"),
   leakageBadge: byId<HTMLElement>("leakage-badge"),
   validationGrid: byId<HTMLElement>("validation-grid"),
   labelLab: byId<HTMLElement>("label-lab"),
+  arenaStatGrid: byId<HTMLElement>("arena-stat-grid"),
   leaderboard: byId<HTMLElement>("leaderboard"),
   challengeList: byId<HTMLElement>("challenge-list"),
+  replayList: byId<HTMLElement>("replay-list"),
   tradierForm: byId<HTMLFormElement>("tradier-form"),
   tradierToken: byId<HTMLInputElement>("tradier-token"),
   tradierAccount: byId<HTMLInputElement>("tradier-account"),
@@ -228,8 +317,14 @@ const el = {
   orderType: byId<HTMLSelectElement>("order-type"),
   orderPrice: byId<HTMLInputElement>("order-price"),
   orderConfirm: byId<HTMLInputElement>("order-confirm"),
+  paperTrade: byId<HTMLButtonElement>("paper-trade-btn"),
+  paperTradeStatus: byId<HTMLElement>("paper-trade-status"),
   placeOrder: byId<HTMLButtonElement>("place-order-btn"),
   orderStatus: byId<HTMLElement>("order-status"),
+  detailFocusBadge: byId<HTMLElement>("detail-focus-badge"),
+  selectedContractCard: byId<HTMLElement>("selected-contract-card"),
+  scenarioGrid: byId<HTMLElement>("scenario-grid"),
+  comparisonList: byId<HTMLElement>("comparison-list"),
   decisionAction: byId<HTMLElement>("decision-action"),
   decisionCopy: byId<HTMLElement>("decision-copy"),
   marketRegime: byId<HTMLElement>("market-regime"),
@@ -237,6 +332,11 @@ const el = {
   xpProgress: byId<HTMLElement>("xp-progress"),
   underlyingPrice: byId<HTMLElement>("underlying-price"),
   expectedMove: byId<HTMLElement>("expected-move"),
+  eventForm: byId<HTMLFormElement>("event-form"),
+  eventTitle: byId<HTMLInputElement>("event-title"),
+  eventSource: byId<HTMLInputElement>("event-source"),
+  eventBody: byId<HTMLTextAreaElement>("event-body"),
+  eventStatus: byId<HTMLElement>("event-status"),
 };
 
 function byId<T extends HTMLElement>(id: string): T | null {
@@ -244,11 +344,11 @@ function byId<T extends HTMLElement>(id: string): T | null {
 }
 
 function money(value: number) {
-  return value.toLocaleString(undefined, { style: "currency", currency: "USD" });
+  return Number(value || 0).toLocaleString(undefined, { style: "currency", currency: "USD" });
 }
 
 function pct(value: number) {
-  return `${value >= 0 ? "+" : ""}${value.toFixed(2)}%`;
+  return `${value >= 0 ? "+" : ""}${Number(value || 0).toFixed(2)}%`;
 }
 
 function widthClass(value: number) {
@@ -256,16 +356,12 @@ function widthClass(value: number) {
   return `fill-w-${bucket}`;
 }
 
-function clamp(value: number, min = -1, max = 1) {
-  return Math.max(min, Math.min(max, value));
+function clamp01(value: number) {
+  return Math.max(0, Math.min(1, value));
 }
 
-function hashSymbol(symbol: string) {
-  let total = 0;
-  for (let index = 0; index < symbol.length; index += 1) {
-    total = (total * 31 + symbol.charCodeAt(index)) % 9973;
-  }
-  return total / 9973;
+function escapeHtml(value: string) {
+  return String(value || "").replace(/[&<>"']/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;" })[char] || char);
 }
 
 function cleanSymbol(value: string) {
@@ -276,268 +372,141 @@ function currentSymbol() {
   return cleanSymbol(el.symbolInput?.value || state.selectedSymbol);
 }
 
-function expirationDate() {
-  const date = new Date();
-  date.setDate(date.getDate() + 24 + ((date.getDay() + 2) % 5));
-  return date.toISOString().slice(0, 10);
+function currentOptions() {
+  return state.selectedSnapshot?.options || [];
 }
 
-function occSymbol(symbol: string, expiration: string, type: "call" | "put", strike: number) {
-  const root = symbol.replace(/[^A-Z]/g, "").slice(0, 6) || "SPY";
-  const yymmdd = expiration.slice(2).replaceAll("-", "");
-  const strikeCode = String(Math.round(strike * 1000)).padStart(8, "0");
-  return `${root}${yymmdd}${type === "call" ? "C" : "P"}${strikeCode}`;
-}
-
-function getQuote(symbol: string): WatchSymbol {
-  const seed = hashSymbol(symbol);
-  const base = symbol === "SPY" ? 512 : symbol === "NVDA" ? 875 : symbol === "TSLA" ? 174 : symbol === "AAPL" ? 183 : 80 + seed * 740;
-  const change = (Math.sin(seed * 20) * 2.8 + Math.cos(seed * 11) * 0.9);
-  return {
-    symbol,
-    price: Number(base.toFixed(2)),
-    changePercent: Number(change.toFixed(2)),
-    sector: symbol === "SPY" || symbol === "QQQ" ? "ETF" : "Equity",
+function currentQuote() {
+  return state.selectedSnapshot?.quote || {
+    symbol: state.selectedSymbol,
+    price: 0,
+    changePercent: 0,
+    sector: "Equity",
+    snapshotAt: "",
   };
 }
 
-function buildWatchlist() {
-  const symbols = ["SPY", "QQQ", "NVDA", "TSLA", "AAPL", state.selectedSymbol].filter(
-    (symbol, index, list) => list.indexOf(symbol) === index,
-  );
-  return symbols.map(getQuote);
+function featureValue(feature: FeatureKey) {
+  return Number(state.latestDecision?.features?.[feature] ?? state.selectedSnapshot?.features?.[feature] ?? 0);
 }
 
-function buildFeatures(symbol = state.selectedSymbol): Record<EssenceKey, number> {
-  const seed = hashSymbol(symbol) - 0.5;
-  const last = state.samples[state.samples.length - 1];
-  const essenceBias = Object.fromEntries(essenceKeys.map((key) => [key, clamp((state.essence[key] - 40) / 90)])) as Record<
-    EssenceKey,
-    number
-  >;
-  return {
-    momentum: clamp((last?.momentum ?? seed * 1.4) * 0.62 + essenceBias.momentum * 0.38),
-    volatility: clamp((last?.volatility ?? Math.cos(seed * 8)) * 0.55 + essenceBias.volatility * 0.45),
-    sentiment: clamp((last?.sentiment ?? seed) * 0.66 + essenceBias.sentiment * 0.34),
-    liquidity: clamp((last?.liquidity ?? 0.58) * 0.7 + essenceBias.liquidity * 0.3),
-    iv_rank: clamp((last?.iv_rank ?? -seed) * 0.58 + essenceBias.iv_rank * 0.42),
-  };
-}
-
-function buildOptions(symbol = state.selectedSymbol): OptionContract[] {
-  const quote = getQuote(symbol);
-  const expiration = expirationDate();
-  const features = buildFeatures(symbol);
-  const step = quote.price > 300 ? 5 : quote.price > 100 ? 2.5 : 1;
-  const center = Math.round(quote.price / step) * step;
-  const strikes = [-2, -1, 0, 1].map((offset) => Number((center + offset * step).toFixed(2)));
-  return strikes.flatMap((strike, index) => {
-    const distance = Math.abs(strike - quote.price) / Math.max(quote.price, 1);
-    const basePremium = Math.max(0.28, quote.price * (0.012 + distance * 0.42));
-    const callScore = clamp(0.5 + features.momentum * 0.21 + features.sentiment * 0.16 + features.liquidity * 0.08 - distance, 0.05, 0.95);
-    const putScore = clamp(0.5 - features.momentum * 0.21 + features.volatility * 0.13 - features.sentiment * 0.1 - distance, 0.05, 0.95);
-    const iv = clamp(0.24 + Math.abs(features.volatility) * 0.18 + features.iv_rank * 0.08, 0.12, 0.72);
-    return [
-      {
-        type: "call" as const,
-        strike,
-        expiration,
-        lastPrice: Number((basePremium * (1 + index * 0.06)).toFixed(2)),
-        volume: Math.round(350 + hashSymbol(`${symbol}c${strike}`) * 5000),
-        openInterest: Math.round(900 + hashSymbol(`${symbol}co${strike}`) * 16000),
-        impliedVolatility: Number(iv.toFixed(2)),
-        predictionScore: Number(callScore.toFixed(2)),
-        optionSymbol: occSymbol(symbol, expiration, "call", strike),
-      },
-      {
-        type: "put" as const,
-        strike,
-        expiration,
-        lastPrice: Number((basePremium * (0.92 + index * 0.05)).toFixed(2)),
-        volume: Math.round(300 + hashSymbol(`${symbol}p${strike}`) * 4300),
-        openInterest: Math.round(700 + hashSymbol(`${symbol}po${strike}`) * 13000),
-        impliedVolatility: Number((iv + 0.02).toFixed(2)),
-        predictionScore: Number(putScore.toFixed(2)),
-        optionSymbol: occSymbol(symbol, expiration, "put", strike),
-      },
-    ];
-  });
-}
-
-function setStatus(target: HTMLElement | null, message: string, tone: "error" | "success" | "" = "") {
-  if (!target) return;
-  target.textContent = message;
-  target.classList.toggle("error", tone === "error");
-  target.classList.toggle("success", tone === "success");
-}
-
-function marketRegime(features: Record<EssenceKey, number>) {
-  if (features.volatility > 0.58) return "Stormy";
-  if (features.momentum > 0.32 && features.sentiment > -0.15) return "Risk-on";
-  if (features.momentum < -0.32 || features.sentiment < -0.45) return "Defensive";
+function regimeText() {
+  const range = featureValue("intraday_range");
+  const change = featureValue("change_pct");
+  if (range > 0.4) return "Stormy";
+  if (change > 0.2) return "Risk-on";
+  if (change < -0.2) return "Defensive";
   return "Balanced";
 }
 
-function riskRead(features: Record<EssenceKey, number>, forecast: ForecastRecord | null) {
-  if (features.iv_rank > 0.54) return "High IV";
-  if (features.liquidity < -0.28) return "Thin Tape";
-  if (!forecast || forecast.contract === "wait" || forecast.probability < 0.58) return "Guarded";
-  return "Tradable";
+function riskText() {
+  const liquidity = featureValue("liquidity");
+  const iv = featureValue("atm_iv");
+  if (liquidity < -0.3) return "Thin Tape";
+  if (iv > 0.45) return "High IV";
+  if (state.latestDecision?.decision === "no_trade") return "Stand Down";
+  return state.latestDecision ? "Tradable" : "Awaiting Replay";
 }
 
-function decisionText(forecast: ForecastRecord | null) {
-  if (!forecast) {
-    return {
-      action: "Awaiting Scan",
-      copy: "Pick a symbol, scan the tape, then compare edge against liquidity and premium.",
-    };
+function derivedXp() {
+  const scoreComponent = Math.round((state.summary.avgScore || 0) * 240);
+  return state.summary.decisionCount * 40 + scoreComponent;
+}
+
+function derivedLevel() {
+  return Math.max(1, 1 + Math.floor(derivedXp() / 240));
+}
+
+function selectedOption() {
+  const options = currentOptions();
+  if (!options.length) return null;
+  const direct = options.find((option) => option.optionSymbol === selectedOptionSymbol);
+  if (direct) return direct;
+  const preferred = state.latestDecision?.selectedOptionSymbol
+    ? options.find((option) => option.optionSymbol === state.latestDecision?.selectedOptionSymbol)
+    : null;
+  if (preferred) {
+    selectedOptionSymbol = preferred.optionSymbol;
+    return preferred;
   }
-  if (forecast.contract === "wait") {
-    return {
-      action: "No-Trade Watch",
-      copy: "The desk is not seeing enough edge yet. Preserve paper capital and collect cleaner labels.",
-    };
+  const fallback =
+    [...options].sort(
+      (left, right) =>
+        (right.openInterest + right.volume * 0.5) / Math.max(right.mark, 0.01) -
+        (left.openInterest + left.volume * 0.5) / Math.max(left.mark, 0.01),
+    )[0] || null;
+  if (fallback) selectedOptionSymbol = fallback.optionSymbol;
+  return fallback;
+}
+
+function applyModel(model: ModelRecord | null) {
+  state.modelReady = Boolean(model);
+  state.modelName = model?.name || "Cumulonimbus Replay Model";
+  state.modelMetrics = model?.metrics || null;
+  if (!model) return;
+  const weighted = model.features.map((name) => ({
+    name,
+    value: Math.abs(Number(model.weights[name] || 0)),
+  }));
+  const total = weighted.reduce((sum, item) => sum + item.value, 0) || 1;
+  state.featureImportance = weighted
+    .map((item) => ({ ...item, value: Math.round((item.value / total) * 100) }))
+    .sort((left, right) => right.value - left.value);
+  state.pipeline.features = model.features;
+}
+
+function applyDashboard(dashboard: DashboardPayload) {
+  state.watchlist = dashboard.watchlist;
+  state.setups = dashboard.setups;
+  state.selectedSnapshot = dashboard.selectedSnapshot;
+  state.latestDecision = dashboard.latestDecision;
+  state.latestOutcome = dashboard.latestOutcome;
+  state.trades = dashboard.trades;
+  state.events = dashboard.events;
+  state.summary = dashboard.summary;
+  applyModel(dashboard.model);
+  if (dashboard.selectedSnapshot) {
+    state.selectedSymbol = dashboard.selectedSnapshot.symbol;
+    if (el.symbolInput) el.symbolInput.value = state.selectedSymbol;
   }
-  const side = forecast.contract === "call" ? "Call Bias" : "Put Hedge";
+  selectedOptionSymbol =
+    dashboard.latestDecision?.selectedOptionSymbol ||
+    selectedOption()?.optionSymbol ||
+    selectedOptionSymbol;
+}
+
+function orderPayload() {
   return {
-    action: `${side} ${Math.round(forecast.probability * 100)}%`,
-    copy: `${forecast.symbol} has a ${forecast.class.replace("_", " ")} read. Check spread, IV, and sizing before any fill.`,
+    asset_class: el.orderAsset?.value || "option",
+    side: el.orderSide?.value || "buy_to_open",
+    symbol: cleanSymbol(el.orderSymbol?.value || state.selectedSymbol),
+    option_symbol: cleanSymbol(el.orderOptionSymbol?.value || ""),
+    quantity: Number(el.orderQuantity?.value || 1),
+    type: el.orderType?.value || "limit",
+    duration: "day",
+    limit_price: Number(el.orderPrice?.value || 0),
   };
-}
-
-function gainXp(amount: number) {
-  state.xp += amount;
-  const threshold = state.level * 140;
-  if (state.xp >= threshold) {
-    state.xp -= threshold;
-    state.level += 1;
-    pushConsole(`Level ${state.level} reached. New league weighting unlocked.`);
-  }
-}
-
-function addSample(sample: SignalSample) {
-  state.samples = [...state.samples, sample].slice(-200);
-  const key = sample.label >= 0.5 ? "momentum" : "volatility";
-  state.essence[key] = Math.min(999, state.essence[key] + 10);
-  state.essence.liquidity = Math.min(999, state.essence.liquidity + 4);
-}
-
-function runPaperDrill() {
-  const features = buildFeatures();
-  const label = features.momentum + features.sentiment * 0.7 + features.liquidity * 0.25 > features.volatility * 0.4 ? 1 : 0;
-  addSample({ ...features, label });
-  gainXp(28);
-  pushConsole(`Paper drill labeled ${label ? "CALL" : "PUT"} for ${state.selectedSymbol}.`);
-  setStatus(el.forecastStatus, "Paper drill added one training row. Deploy or retrain the oracle when ready.", "success");
-  queueSave();
-  render();
-}
-
-function recordOutcome(side: "call" | "put") {
-  if (!state.forecast) {
-    setStatus(el.forecastStatus, "Scan a symbol before recording an outcome.", "error");
-    return;
-  }
-  addSample({ ...state.forecast.features, label: side === "call" ? 1 : 0 });
-  gainXp(18);
-  pushConsole(`${state.forecast.symbol} ${side.toUpperCase()} outcome recorded.`);
-  setStatus(el.forecastStatus, `${side.toUpperCase()} outcome recorded for the next model version.`, "success");
-  queueSave();
-  render();
-}
-
-function simulateTrade(option: OptionContract) {
-  const cost = option.lastPrice * 100;
-  if (state.balance < cost) {
-    setStatus(el.forecastStatus, "Insufficient paper equity for this contract.", "error");
-    return;
-  }
-  const features = buildFeatures(option.optionSymbol);
-  const quality = option.predictionScore + features.liquidity * 0.08 - Math.max(0, option.impliedVolatility - 0.45) * 0.18;
-  const win = hashSymbol(`${option.optionSymbol}${state.trades.length}`) < clamp(quality, 0.08, 0.88);
-  const multiplier = win ? 1.14 + option.predictionScore * 1.35 : 0.18 + Math.max(0, features.liquidity) * 0.18;
-  const pnl = Number((cost * multiplier - cost).toFixed(2));
-  const trade: PaperTrade = {
-    id: `${Date.now()}-${option.optionSymbol}`,
-    time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-    symbol: state.selectedSymbol,
-    optionSymbol: option.optionSymbol,
-    side: option.type,
-    debit: option.lastPrice,
-    quantity: 1,
-    pnl,
-    score: option.predictionScore,
-  };
-  state.balance = Number((state.balance + pnl).toFixed(2));
-  state.pnlHistory = [...state.pnlHistory, { time: trade.time, value: state.balance }].slice(-24);
-  state.trades = [trade, ...state.trades].slice(0, 20);
-  state.forecast = {
-    symbol: state.selectedSymbol,
-    contract: option.type,
-    probability: option.predictionScore,
-    class: option.predictionScore >= 0.58 ? `${option.type}_edge` : "low_conviction",
-    features: buildFeatures(),
-  };
-  gainXp(win ? 45 : 18);
-  addSample({ ...state.forecast.features, label: option.type === "call" ? 1 : 0 });
-  pushConsole(`${trade.optionSymbol} paper ${win ? "win" : "loss"}: ${money(pnl)}.`);
-  setStatus(el.forecastStatus, `${option.type.toUpperCase()} paper trade logged with ${money(pnl)} P&L.`, pnl >= 0 ? "success" : "error");
-  queueSave();
-  render();
-}
-
-function pushConsole(message: string) {
-  const stamp = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-  const line = document.createElement("p");
-  line.textContent = `[${stamp}] ${message}`;
-  el.consoleLog?.prepend(line);
-  while ((el.consoleLog?.children.length || 0) > 9) {
-    el.consoleLog?.lastElementChild?.remove();
-  }
 }
 
 function serializeState() {
   return {
-    level: state.level,
-    xp: state.xp,
-    wins: state.trades.filter((trade) => trade.pnl > 0).length,
-    essence: state.essence,
-    samples: state.samples,
     last_symbol: state.selectedSymbol,
-    profession: {
-      signalsCollected: state.samples.length,
-      questStage: state.modelReady ? 3 : state.samples.length ? 1 : 0,
-      contractBias: "auto",
-      forecast: state.forecast,
-    },
     cockpit: {
-      balance: state.balance,
       initialBalance: state.initialBalance,
-      pnlHistory: state.pnlHistory,
-      trades: state.trades,
-      pipeline: state.pipeline,
       paperMode: state.paperMode,
+      pipeline: state.pipeline,
     },
   };
 }
 
 function hydrate(saved: unknown) {
   if (!saved || typeof saved !== "object") return;
-  const data = saved as Partial<ReturnType<typeof serializeState>>;
-  state.level = Number(data.level || state.level);
-  state.xp = Number(data.xp || state.xp);
-  state.samples = Array.isArray(data.samples) ? (data.samples.slice(-200) as SignalSample[]) : state.samples;
-  state.essence = { ...state.essence, ...(data.essence || {}) };
-  state.forecast = (data.profession?.forecast || null) as ForecastRecord | null;
+  const data = saved as { last_symbol?: string; cockpit?: { initialBalance?: number; paperMode?: string; pipeline?: Partial<PipelineState> } };
   state.selectedSymbol = cleanSymbol(String(data.last_symbol || state.selectedSymbol));
-  const cockpit = data.cockpit;
-  if (cockpit) {
-    state.balance = Number(cockpit.balance || state.balance);
-    state.initialBalance = Number(cockpit.initialBalance || state.initialBalance);
-    state.pnlHistory = Array.isArray(cockpit.pnlHistory) ? cockpit.pnlHistory.slice(-24) : state.pnlHistory;
-    state.trades = Array.isArray(cockpit.trades) ? cockpit.trades.slice(0, 20) : state.trades;
-    state.pipeline = { ...state.pipeline, ...(cockpit.pipeline || {}) };
-    state.paperMode = cockpit.paperMode === "shadow" ? "shadow" : "paper";
+  if (data.cockpit?.initialBalance) state.initialBalance = Number(data.cockpit.initialBalance);
+  if (data.cockpit?.paperMode === "shadow") state.paperMode = "shadow";
+  if (data.cockpit?.pipeline) {
+    state.pipeline = { ...state.pipeline, ...data.cockpit.pipeline } as PipelineState;
   }
   if (el.symbolInput) el.symbolInput.value = state.selectedSymbol;
 }
@@ -554,34 +523,72 @@ function queueSave() {
   }, 350);
 }
 
-async function trainModel() {
-  if (!state.pipeline.features.length) {
-    setStatus(el.modelStatus, "Choose at least one input dimension.", "error");
-    return;
+async function refreshDashboard(symbol = state.selectedSymbol) {
+  const query = new URLSearchParams({
+    mode: state.paperMode,
+    symbol,
+    symbols: defaultWatchlist.join(","),
+  });
+  const response = await api<{ ok: true; connected: boolean; message?: string; dashboard: DashboardPayload }>(
+    `/api/research/dashboard?${query.toString()}`,
+  );
+  state.connected = response.connected;
+  state.message = response.message || "";
+  applyDashboard(response.dashboard);
+}
+
+async function captureScan(mode: PaperMode) {
+  state.selectedSymbol = currentSymbol();
+  if (el.orderSymbol) el.orderSymbol.value = state.selectedSymbol;
+  setStatus(el.forecastStatus, `Capturing ${state.selectedSymbol} replay scan...`);
+  try {
+    const response = await api<{ ok: true; connected: true; decision: DecisionRecord; dashboard: DashboardPayload }>(
+      "/api/research/scan",
+      {
+        method: "POST",
+        csrfToken,
+        body: JSON.stringify({ symbol: state.selectedSymbol, mode }),
+      },
+    );
+    state.paperMode = mode;
+    applyDashboard(response.dashboard);
+    state.latestDecision = response.decision;
+    selectedOptionSymbol = response.decision.selectedOptionSymbol || selectedOptionSymbol;
+    pushConsole(
+      `${response.decision.symbol} ${response.decision.decision.toUpperCase()} scan captured at ${Math.round(
+        response.decision.probability * 100,
+      )}% (${response.decision.rationale?.engine || "heuristic"}).`,
+    );
+    setStatus(el.forecastStatus, "Replay scan captured. The outcome will resolve when fresher snapshots arrive.", "success");
+    queueSave();
+  } catch (error) {
+    setStatus(el.forecastStatus, error instanceof Error ? error.message : String(error), "error");
+  } finally {
+    render();
   }
-  pushConsole(`Training ${state.pipeline.architecture} on ${state.samples.length} user rows.`);
-  setStatus(el.modelStatus, "Training your personal oracle...");
+}
+
+async function trainModel() {
+  setStatus(el.modelStatus, "Training on resolved replay outcomes...");
   el.trainModel?.setAttribute("disabled", "true");
   try {
-    const data = await api<{
-      ok: true;
-      model: { name: string; weights: Record<string, number>; metrics: { accuracy: number; brier: number; training_rows: number; user_rows?: number } };
-    }>("/api/models/train", {
+    const response = await api<{ ok: true; model: ModelRecord }>("/api/models/train", {
       method: "POST",
       csrfToken,
-      body: JSON.stringify({ name: state.pipeline.architecture, samples: state.samples }),
+      body: JSON.stringify({
+        name: "Cumulonimbus Replay Model",
+        feature_keys: state.pipeline.features,
+      }),
     });
-    state.modelReady = true;
-    state.modelName = data.model.name;
-    state.modelMetrics = data.model.metrics;
-    state.featureImportance = essenceKeys
-      .map((name) => ({ name, value: Math.abs(Number(data.model.weights[name] || 0)) }))
-      .sort((a, b) => b.value - a.value);
-    const total = state.featureImportance.reduce((sum, item) => sum + item.value, 0) || 1;
-    state.featureImportance = state.featureImportance.map((item) => ({ ...item, value: Math.round((item.value / total) * 100) }));
-    gainXp(55 + state.pipeline.features.length * 8);
-    pushConsole(`Model deployed: ${(data.model.metrics.accuracy * 100).toFixed(0)}% fit, Brier ${data.model.metrics.brier}.`);
-    setStatus(el.modelStatus, "Oracle deployed. Return to the desk and scan a symbol.", "success");
+    applyModel({
+      ...response.model,
+      bias: Number(response.model.weights.bias || 0),
+    } as unknown as ModelRecord);
+    await refreshDashboard(state.selectedSymbol);
+    pushConsole(
+      `Replay model trained: ${(response.model.metrics.accuracy * 100).toFixed(0)}% ${response.model.metrics.validation || "validation"}, Brier ${response.model.metrics.brier}.`,
+    );
+    setStatus(el.modelStatus, "Replay model trained. Capture fresh scans to generate out-of-sample decisions.", "success");
     queueSave();
   } catch (error) {
     setStatus(el.modelStatus, error instanceof Error ? error.message : String(error), "error");
@@ -591,99 +598,75 @@ async function trainModel() {
   }
 }
 
-async function forecastSymbol() {
-  state.selectedSymbol = currentSymbol();
-  if (el.orderSymbol) el.orderSymbol.value = state.selectedSymbol;
-  setStatus(el.forecastStatus, `Scanning ${state.selectedSymbol}...`);
-  if (!state.modelReady) {
-    state.forecast = {
-      symbol: state.selectedSymbol,
-      contract: "wait",
-      probability: 0.5,
-      class: "training_required",
-      features: buildFeatures(),
-    };
-    setStatus(el.forecastStatus, "Model not trained yet. Option chain is available for paper learning only.", "error");
-    render();
+async function submitPaperTrade() {
+  const option = selectedOption();
+  if (!state.selectedSnapshot || !option) {
+    setStatus(el.paperTradeStatus, "Capture a replay scan and choose a contract first.", "error");
     return;
   }
+  setStatus(el.paperTradeStatus, "Opening replay-backed paper position...");
   try {
-    const features = buildFeatures();
-    const data = await api<{
-      ok: true;
-      symbol: string;
-      prediction: { probability: number; class: string; features: Record<EssenceKey, number> };
-    }>("/api/models/predict", {
+    const response = await api<{ ok: true; trade: TradeRecord; dashboard: DashboardPayload }>("/api/research/paper-trade", {
       method: "POST",
       csrfToken,
-      body: JSON.stringify({ symbol: state.selectedSymbol, features }),
+      body: JSON.stringify({
+        snapshot_id: state.selectedSnapshot.id,
+        decision_id: state.latestDecision?.id || null,
+        option_symbol: option.optionSymbol,
+        quantity: Number(el.orderQuantity?.value || 1),
+        mode: state.paperMode,
+        symbol: state.selectedSymbol,
+        entry_score: state.latestDecision?.score || 0,
+      }),
     });
-    const contract = data.prediction.class === "call_edge" ? "call" : data.prediction.class === "put_hedge" ? "put" : "wait";
-    state.forecast = {
-      symbol: data.symbol,
-      contract,
-      probability: data.prediction.probability,
-      class: data.prediction.class,
-      features,
-    };
-    gainXp(16);
-    pushConsole(`${data.symbol} scan: ${data.prediction.class} at ${(data.prediction.probability * 100).toFixed(0)}%.`);
-    setStatus(el.forecastStatus, "Scan complete. Use the chain for a paper trade or record the later outcome.", "success");
-    queueSave();
-  } catch (error) {
-    setStatus(el.forecastStatus, error instanceof Error ? error.message : String(error), "error");
-  } finally {
+    applyDashboard(response.dashboard);
+    pushConsole(`${response.trade.symbol} ${response.trade.side.toUpperCase()} paper position opened from replay snapshot.`);
+    setStatus(el.paperTradeStatus, "Paper position opened. It will close against a later replay snapshot for this symbol.", "success");
     render();
+  } catch (error) {
+    setStatus(el.paperTradeStatus, error instanceof Error ? error.message : String(error), "error");
   }
 }
 
-async function refreshModelStatus() {
+async function submitEventOverlay() {
+  if (!state.selectedSnapshot) {
+    setStatus(el.eventStatus, "Capture a replay snapshot before attaching event context.", "error");
+    return;
+  }
+  setStatus(el.eventStatus, "Saving timestamped event overlay...");
   try {
-    const data = await api<{
-      ok: true;
-      model: null | {
-        name: string;
-        weights: Record<string, number>;
-        metrics: { accuracy: number; brier: number; training_rows: number; user_rows?: number };
-      };
-    }>("/api/models/latest");
-    if (!data.model) return;
-    state.modelReady = true;
-    state.modelName = data.model.name;
-    state.modelMetrics = data.model.metrics;
-    state.featureImportance = essenceKeys.map((name) => ({ name, value: Math.abs(Number(data.model?.weights[name] || 0)) }));
-    const total = state.featureImportance.reduce((sum, item) => sum + item.value, 0) || 1;
-    state.featureImportance = state.featureImportance
-      .map((item) => ({ ...item, value: Math.round((item.value / total) * 100) }))
-      .sort((a, b) => b.value - a.value);
-  } catch {
-    state.modelReady = false;
+    const response = await api<{ ok: true; dashboard: DashboardPayload }>("/api/research/events", {
+      method: "POST",
+      csrfToken,
+      body: JSON.stringify({
+        snapshot_id: state.selectedSnapshot.id,
+        symbol: state.selectedSymbol,
+        title: el.eventTitle?.value || "",
+        source: el.eventSource?.value || "Manual note",
+        body: el.eventBody?.value || "",
+        mode: state.paperMode,
+      }),
+    });
+    if (el.eventTitle) el.eventTitle.value = "";
+    if (el.eventSource) el.eventSource.value = "";
+    if (el.eventBody) el.eventBody.value = "";
+    applyDashboard(response.dashboard);
+    pushConsole(`${state.selectedSymbol} event overlay saved.`);
+    setStatus(el.eventStatus, "Event overlay saved to the replay timeline.", "success");
+    render();
+  } catch (error) {
+    setStatus(el.eventStatus, error instanceof Error ? error.message : String(error), "error");
   }
 }
 
 async function refreshLeaderboard() {
   try {
-    const data = await api<{ ok: true; leaders: Array<{ display_name: string; level: number; xp: number }> }>("/api/leaderboard");
-    const leaders = data.leaders.length
-      ? data.leaders
-      : [{ display_name: session?.user?.display_name || "You", level: state.level, xp: state.xp }];
-    const index = leaders.findIndex((leader) => leader.display_name === session?.user?.display_name);
+    const data = await api<{ ok: true; leaders: LeaderboardRecord[] }>("/api/leaderboard");
+    state.leaderboard = data.leaders;
+    const index = data.leaders.findIndex((leader) => leader.display_name === session?.user?.display_name);
     state.rank = index >= 0 ? String(index + 1) : "-";
-    if (!el.leaderboard) return;
-    el.leaderboard.innerHTML = leaders
-      .slice(0, 10)
-      .map(
-        (leader, idx) => `
-          <div class="leader-row">
-            <span>${idx + 1}</span>
-            <strong>${escapeHtml(leader.display_name)}</strong>
-            <em>LVL ${leader.level}</em>
-            <b>${leader.xp.toLocaleString()} XP</b>
-          </div>
-        `,
-      )
-      .join("");
   } catch {
+    state.leaderboard = [];
     state.rank = "-";
   }
 }
@@ -697,7 +680,7 @@ async function refreshTradierStatus() {
     }>("/api/tradier/status");
     if (!data.broker.configured) {
       if (el.brokerMode) el.brokerMode.textContent = "Disconnected";
-      setStatus(el.tradierStatus, "No Tradier token stored for this account.");
+      setStatus(el.tradierStatus, "Connect Tradier to fetch real replay snapshots.");
       return;
     }
     if (el.brokerMode) el.brokerMode.textContent = `${data.broker.mode} ${data.broker.account_id_masked}`;
@@ -708,61 +691,104 @@ async function refreshTradierStatus() {
   }
 }
 
-function orderPayload() {
+function setStatus(target: HTMLElement | null, message: string, tone: "error" | "success" | "" = "") {
+  if (!target) return;
+  target.textContent = message;
+  target.classList.toggle("error", tone === "error");
+  target.classList.toggle("success", tone === "success");
+}
+
+function pushConsole(message: string) {
+  const stamp = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  const line = document.createElement("p");
+  line.textContent = `[${stamp}] ${message}`;
+  el.consoleLog?.prepend(line);
+  while ((el.consoleLog?.children.length || 0) > 9) {
+    el.consoleLog?.lastElementChild?.remove();
+  }
+}
+
+function decisionText() {
+  if (!state.latestDecision) {
+    return {
+      action: "Awaiting Replay",
+      copy: state.connected
+        ? "Capture a replay scan to score call, put, or no-trade from real market snapshots."
+        : state.message || "Connect Tradier to begin building the replay store.",
+    };
+  }
+  if (state.latestDecision.decision === "no_trade") {
+    return {
+      action: "No-Trade Watch",
+      copy: "The replay desk prefers patience here. Thin liquidity, elevated IV, or weak directional edge outweighed conviction.",
+    };
+  }
   return {
-    asset_class: el.orderAsset?.value || "option",
-    side: el.orderSide?.value || "buy_to_open",
-    symbol: cleanSymbol(el.orderSymbol?.value || state.selectedSymbol),
-    option_symbol: cleanSymbol(el.orderOptionSymbol?.value || ""),
-    quantity: Number(el.orderQuantity?.value || 1),
-    type: el.orderType?.value || "limit",
-    duration: "day",
-    limit_price: Number(el.orderPrice?.value || 0),
+    action: `${state.latestDecision.decision === "call" ? "Call Bias" : "Put Hedge"} ${Math.round(state.latestDecision.probability * 100)}%`,
+    copy: `${state.latestDecision.symbol} scored from replay features. Treat the ranking as a thesis, then verify spread, IV, and sizing.`,
   };
 }
 
 function render() {
-  const dayPnl = state.balance - state.initialBalance;
-  const quote = getQuote(state.selectedSymbol);
-  const features = buildFeatures();
-  const decision = decisionText(state.forecast);
+  const level = derivedLevel();
+  const xp = derivedXp();
+  const quote = currentQuote();
+  const dayPnl = state.summary.balance - state.initialBalance;
+  const decision = decisionText();
+  const option = selectedOption();
+
   if (el.sessionChip) el.sessionChip.textContent = session?.user?.display_name || "Trader";
-  if (el.equity) el.equity.textContent = money(state.balance);
+  if (el.equity) el.equity.textContent = money(state.summary.balance);
   if (el.dayPnl) {
     el.dayPnl.textContent = money(dayPnl);
     el.dayPnl.classList.toggle("positive", dayPnl >= 0);
     el.dayPnl.classList.toggle("negative", dayPnl < 0);
   }
-  if (el.level) el.level.textContent = String(state.level);
+  if (el.level) el.level.textContent = String(level);
   if (el.rank) el.rank.textContent = state.rank;
   if (el.decisionAction) el.decisionAction.textContent = decision.action;
   if (el.decisionCopy) el.decisionCopy.textContent = decision.copy;
-  if (el.marketRegime) el.marketRegime.textContent = marketRegime(features);
-  if (el.riskRead) el.riskRead.textContent = riskRead(features, state.forecast);
-  if (el.xpProgress) el.xpProgress.textContent = `${state.xp} / ${state.level * 140}`;
+  if (el.marketRegime) el.marketRegime.textContent = regimeText();
+  if (el.riskRead) el.riskRead.textContent = riskText();
+  if (el.xpProgress) el.xpProgress.textContent = `${xp % 240} / 240`;
   if (el.underlyingPrice) el.underlyingPrice.textContent = money(quote.price);
   if (el.expectedMove) {
     el.expectedMove.textContent = pct(quote.changePercent);
     el.expectedMove.classList.toggle("positive", quote.changePercent >= 0);
     el.expectedMove.classList.toggle("negative", quote.changePercent < 0);
   }
-  if (el.portfolioTitle) el.portfolioTitle.textContent = `${state.paperMode === "paper" ? "Paper" : "Shadow"} Portfolio Velocity`;
+  if (el.portfolioTitle) el.portfolioTitle.textContent = `${state.paperMode === "paper" ? "Paper" : "Shadow"} Replay Equity`;
   if (el.chainTitle) el.chainTitle.textContent = `${state.selectedSymbol} Contracts`;
-  if (el.dataFreshness) el.dataFreshness.textContent = `Synthetic paper feed - ${new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`;
+  if (el.dataFreshness) {
+    el.dataFreshness.textContent = state.selectedSnapshot
+      ? `Replay snapshot - ${new Date(state.selectedSnapshot.snapshotAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`
+      : "Replay feed not loaded";
+  }
+  if (el.detailFocusBadge) {
+    el.detailFocusBadge.textContent = option
+      ? `${option.type.toUpperCase()} ${money(option.strike)} - ${Math.round((state.latestDecision?.score || 0) * 100)}% score`
+      : "Awaiting selection";
+  }
   renderWatchlist();
+  renderMissionControl();
   renderChart();
   renderChain();
   renderModel();
   renderInference();
   renderJournal();
+  renderTradeDetail();
   renderLab();
   renderResearchLab();
-  renderChallenges();
+  renderArena();
 }
 
 function renderWatchlist() {
   if (!el.watchlist) return;
-  el.watchlist.innerHTML = buildWatchlist()
+  if (!state.watchlist.length) {
+    el.watchlist.innerHTML = `<p>${escapeHtml(state.message || "Connect Tradier to fetch replay snapshots.")}</p>`;
+    return;
+  }
+  el.watchlist.innerHTML = state.watchlist
     .map(
       (item) => `
         <button class="watch-row ${item.symbol === state.selectedSymbol ? "active" : ""}" type="button" data-symbol="${item.symbol}">
@@ -774,18 +800,83 @@ function renderWatchlist() {
     .join("");
   el.watchlist.querySelectorAll<HTMLButtonElement>("[data-symbol]").forEach((button) => {
     button.addEventListener("click", () => {
-      state.selectedSymbol = cleanSymbol(button.dataset.symbol || "SPY");
-      if (el.symbolInput) el.symbolInput.value = state.selectedSymbol;
-      void forecastSymbol();
+      state.selectedSymbol = cleanSymbol(button.dataset.symbol || state.selectedSymbol);
+      void refreshDashboard(state.selectedSymbol).then(render);
     });
   });
+}
+
+function renderMissionControl() {
+  if (el.setupList) {
+    el.setupList.innerHTML = state.setups.length
+      ? state.setups
+          .slice(0, 5)
+          .map(
+            (setup, index) => `
+              <button class="setup-row ${setup.symbol === state.selectedSymbol ? "active" : ""}" type="button" data-setup-symbol="${setup.symbol}">
+                <span class="setup-rank">${index + 1}</span>
+                <span>
+                  <strong>${setup.symbol} ${setup.decision === "no_trade" ? "stand down" : setup.decision}</strong>
+                  <small>${setup.regime} - ${new Date(setup.snapshotAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</small>
+                </span>
+                <span>
+                  <b>${Math.round(setup.score * 100)}%</b>
+                  <small>${setup.debit ? money(setup.debit) : "No trade"}</small>
+                </span>
+              </button>
+            `,
+          )
+          .join("")
+      : `<p>${escapeHtml(state.message || "Replay snapshots will populate ranked setups once Tradier is connected.")}</p>`;
+    el.setupList.querySelectorAll<HTMLButtonElement>("[data-setup-symbol]").forEach((button) => {
+      button.addEventListener("click", () => {
+        state.selectedSymbol = cleanSymbol(button.dataset.setupSymbol || state.selectedSymbol);
+        switchView("vault");
+        void refreshDashboard(state.selectedSymbol).then(render);
+      });
+    });
+  }
+
+  if (el.objectiveList) {
+    const objectives = [
+      {
+        title: state.connected ? "Capture replay scan" : "Connect Tradier",
+        copy: state.connected
+          ? "Fetch a fresh snapshot, store the decision, then let later snapshots resolve the outcome."
+          : "The desk only trains on real replay data, so market snapshots start after the broker link is stored.",
+      },
+      {
+        title: state.modelReady ? "Compare setups" : "Build training history",
+        copy: state.modelReady
+          ? "Use walk-forward scores and no-trade pressure to compare which symbols actually deserve capital."
+          : "Resolved call/put outcomes unlock the first replay-trained model. Until then, heuristic scans stay clearly marked.",
+      },
+      {
+        title: state.events.length ? "Use event overlays" : "Add context carefully",
+        copy: state.events.length
+          ? "Macro or news notes should annotate the replay timeline only if the context existed before the decision."
+          : "Event overlays belong after the replay substrate exists, not before it.",
+      },
+    ];
+    el.objectiveList.innerHTML = objectives
+      .map(
+        (objective, index) => `
+          <div class="objective-row">
+            <span>${index + 1}</span>
+            <strong>${objective.title}</strong>
+            <small>${objective.copy}</small>
+          </div>
+        `,
+      )
+      .join("");
+  }
 }
 
 function renderChart() {
   if (!el.equityChart) return;
   const width = 720;
   const height = 220;
-  const values = state.pnlHistory.length ? state.pnlHistory : [{ time: "Now", value: state.balance }];
+  const values = state.summary.equityHistory.length ? state.summary.equityHistory : [{ time: "Start", value: state.initialBalance }];
   const min = Math.min(...values.map((point) => point.value));
   const max = Math.max(...values.map((point) => point.value));
   const range = Math.max(1, max - min);
@@ -797,7 +888,7 @@ function renderChart() {
     })
     .join(" ");
   el.equityChart.innerHTML = `
-    <svg viewBox="0 0 ${width} ${height}" role="img" aria-label="Paper account equity curve">
+    <svg viewBox="0 0 ${width} ${height}" role="img" aria-label="Replay-backed paper account equity curve">
       <defs>
         <linearGradient id="equityFill" x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stop-color="rgba(16, 185, 129, 0.34)"></stop>
@@ -812,17 +903,22 @@ function renderChart() {
 
 function renderChain() {
   if (!el.optionChain) return;
-  const options = buildOptions();
+  const options = currentOptions();
+  const activeOption = selectedOption();
+  if (!options.length) {
+    el.optionChain.innerHTML = "<p>No option chain loaded yet. Capture a replay scan to populate the contract board.</p>";
+    return;
+  }
   el.optionChain.innerHTML = options
     .map(
       (option) => `
-        <button class="option-row" type="button" data-option="${option.optionSymbol}">
+        <button class="option-row ${activeOption?.optionSymbol === option.optionSymbol ? "active" : ""}" type="button" data-option="${option.optionSymbol}">
           <span class="contract-type ${option.type}">${option.type === "call" ? "C" : "P"}</span>
           <span><strong>${money(option.strike)}</strong><small>${option.expiration}</small></span>
-          <span><strong>${money(option.lastPrice)}</strong><small>IV ${(option.impliedVolatility * 100).toFixed(0)}%</small></span>
+          <span><strong>${money(option.mark)}</strong><small>Bid ${money(option.bid)} / Ask ${money(option.ask)}</small></span>
           <span><strong>${option.openInterest.toLocaleString()}</strong><small>OI / ${option.volume.toLocaleString()} vol</small></span>
-          <span class="edge-cell"><strong>${Math.round(option.predictionScore * 100)}%</strong><small>Edge</small><span class="score-bar"><i class="${widthClass(
-            option.predictionScore * 100,
+          <span class="edge-cell"><strong>${Math.round(option.impliedVolatility * 100)}%</strong><small>IV</small><span class="score-bar"><i class="${widthClass(
+            Math.max(10, Math.min(100, ((option.openInterest + option.volume) / 30))),
           )}"></i></span></span>
         </button>
       `,
@@ -830,12 +926,9 @@ function renderChain() {
     .join("");
   el.optionChain.querySelectorAll<HTMLButtonElement>("[data-option]").forEach((button) => {
     button.addEventListener("click", () => {
-      const option = options.find((item) => item.optionSymbol === button.dataset.option);
-      if (!option) return;
-      if (el.orderSymbol) el.orderSymbol.value = state.selectedSymbol;
-      if (el.orderOptionSymbol) el.orderOptionSymbol.value = option.optionSymbol;
-      if (el.orderPrice) el.orderPrice.value = option.lastPrice.toFixed(2);
-      simulateTrade(option);
+      selectedOptionSymbol = String(button.dataset.option || "");
+      switchView("vault");
+      render();
     });
   });
 }
@@ -847,12 +940,11 @@ function renderModel() {
   }
   if (el.modelBrier) {
     el.modelBrier.textContent = state.modelMetrics
-      ? `Brier ${state.modelMetrics.brier} - ${state.modelMetrics.user_rows || 0} user rows`
-      : `${state.samples.length} rows collected`;
+      ? `Brier ${state.modelMetrics.brier} - ${state.modelMetrics.evaluation_rows || 0} OOS rows`
+      : `${state.summary.decisionCount} resolved decisions`;
   }
   if (el.importanceList) {
     el.importanceList.innerHTML = state.featureImportance
-      .slice(0, 5)
       .map(
         (item) => `
           <div class="importance-row">
@@ -867,35 +959,38 @@ function renderModel() {
 }
 
 function renderInference() {
-  const forecast = state.forecast;
-  if (el.oracleClass) el.oracleClass.textContent = forecast ? forecast.class.replace("_", " ") : "No scan";
+  if (el.oracleClass) el.oracleClass.textContent = state.latestDecision ? state.latestDecision.decision.replace("_", " ") : "No scan";
   if (el.coachNote) {
-    if (!forecast) {
-      el.coachNote.textContent = "Train a model, then scan a symbol. The coach will flag liquidity, volatility, and no-trade risk.";
-    } else if (forecast.contract === "wait") {
-      el.coachNote.textContent = "No-trade is a valid answer. The platform should reward patience when edge is unclear.";
+    if (!state.latestDecision) {
+      el.coachNote.textContent = state.connected
+        ? "Capture a replay scan. The desk will track liquidity, IV, and no-trade pressure from the saved snapshot."
+        : "Connect Tradier to begin capturing replay snapshots.";
+    } else if (state.latestDecision.decision === "no_trade") {
+      el.coachNote.textContent = "No-trade is a scored outcome now. The desk rewards patience when liquidity, IV, or conviction fail the gate.";
     } else {
-      el.coachNote.textContent = `${forecast.symbol} favors a ${forecast.contract.toUpperCase()} read, but size and liquidity still matter more than confidence.`;
+      el.coachNote.textContent = `${state.latestDecision.symbol} favors a ${state.latestDecision.decision.toUpperCase()} read, but the replay score still needs later market validation.`;
     }
   }
   if (!el.inferenceStrip) return;
-  if (!forecast) {
-    el.inferenceStrip.innerHTML = "<p>No inference yet. Scan a symbol from the trading desk.</p>";
+  if (!state.latestDecision) {
+    el.inferenceStrip.innerHTML = "<p>No replay decision yet. Scan a symbol from Mission Control.</p>";
     return;
   }
+  const outcome = state.latestOutcome;
   el.inferenceStrip.innerHTML = `
-    <div><dt>Bias</dt><dd>${forecast.contract.toUpperCase()}</dd><small>${forecast.symbol}</small></div>
-    <div><dt>Confidence</dt><dd>${(forecast.probability * 100).toFixed(0)}%</dd></div>
-    <div><dt>Liquidity</dt><dd>${Math.round(((forecast.features.liquidity + 1) / 2) * 100)}%</dd></div>
-    <div><dt>IV Rank</dt><dd>${Math.round(((forecast.features.iv_rank + 1) / 2) * 100)}%</dd></div>
+    <div><dt>Bias</dt><dd>${state.latestDecision.decision.toUpperCase()}</dd><small>${state.latestDecision.symbol}</small></div>
+    <div><dt>Confidence</dt><dd>${(state.latestDecision.probability * 100).toFixed(0)}%</dd></div>
+    <div><dt>Liquidity</dt><dd>${Math.round(((state.latestDecision.features.liquidity + 1) / 2) * 100)}%</dd></div>
+    <div><dt>ATM IV</dt><dd>${Math.round(((state.latestDecision.features.atm_iv + 1) / 2) * 100)}%</dd></div>
+    <div><dt>Last outcome</dt><dd>${outcome ? outcome.label.replaceAll("_", " ") : "Pending"}</dd></div>
   `;
 }
 
 function renderJournal() {
-  if (el.tradeCount) el.tradeCount.textContent = `${state.trades.length} trades`;
+  if (el.tradeCount) el.tradeCount.textContent = `${state.trades.length} positions`;
   if (!el.tradeJournal) return;
   if (!state.trades.length) {
-    el.tradeJournal.innerHTML = "<p>No paper trades yet. Click a contract in the option chain to simulate one.</p>";
+    el.tradeJournal.innerHTML = "<p>No replay-backed paper positions yet. Open one from Trade Detail after capturing a scan.</p>";
     return;
   }
   el.tradeJournal.innerHTML = state.trades
@@ -903,57 +998,89 @@ function renderJournal() {
     .map(
       (trade) => `
         <div class="trade-row">
-          <span><strong>${trade.symbol} ${trade.side.toUpperCase()}</strong><small>${trade.time} - ${trade.optionSymbol}</small></span>
-          <span><b class="${trade.pnl >= 0 ? "positive" : "negative"}">${money(trade.pnl)}</b><small>Score ${(trade.score * 100).toFixed(0)}%</small></span>
+          <span><strong>${trade.symbol} ${trade.side.toUpperCase()}</strong><small>${new Date(trade.openedAt).toLocaleTimeString([], {
+            hour: "2-digit",
+            minute: "2-digit",
+          })} - ${trade.optionSymbol}</small></span>
+          <span><b class="${(trade.pnl || 0) >= 0 ? "positive" : "negative"}">${
+            trade.pnl === null ? trade.status.toUpperCase() : money(trade.pnl)
+          }</b><small>${trade.status === "open" ? "Awaiting exit snapshot" : trade.outcomeLabel || "Closed"}</small></span>
         </div>
       `,
     )
     .join("");
 }
 
-function renderLab() {
-  renderChoiceList(el.architectureList, architectures, state.pipeline.architecture, (id) => {
-    const selected = architectures.find((item) => item.id === id) || architectures[0];
-    state.pipeline.architecture = selected.id;
-    state.pipeline.architectureType = selected.type;
-    render();
-    queueSave();
-  });
-  renderChoiceList(
-    el.featureList,
-    essenceKeys.map((key) => ({ id: key, type: featureLabels[key] })),
-    "",
-    (id) => {
-      const feature = id as EssenceKey;
-      state.pipeline.features = state.pipeline.features.includes(feature)
-        ? state.pipeline.features.filter((item) => item !== feature)
-        : [...state.pipeline.features, feature];
-      render();
-      queueSave();
-    },
-    state.pipeline.features,
-  );
-  renderChoiceList(
-    el.optimizerList,
-    optimizers.map((id) => ({ id, type: "Optimizer" })),
-    state.pipeline.optimizer,
-    (id) => {
-      state.pipeline.optimizer = id;
-      render();
-      queueSave();
-    },
-  );
-  if (el.pipelineInputs) {
-    el.pipelineInputs.textContent = state.pipeline.features.length
-      ? state.pipeline.features.map((feature) => featureLabels[feature]).join(" + ")
-      : "No inputs connected";
+function renderTradeDetail() {
+  const option = selectedOption();
+  if (!option || !state.selectedSnapshot) {
+    if (el.selectedContractCard) el.selectedContractCard.innerHTML = "<p>Capture a replay scan and select a contract to inspect it here.</p>";
+    if (el.scenarioGrid) el.scenarioGrid.innerHTML = "";
+    if (el.comparisonList) el.comparisonList.innerHTML = "";
+    return;
   }
-  if (el.pipelineCore) el.pipelineCore.textContent = state.pipeline.architecture;
-  if (el.pipelineType) el.pipelineType.textContent = state.pipeline.architectureType;
-  if (el.pipelineOptimizer) el.pipelineOptimizer.textContent = state.pipeline.optimizer;
-  if (el.pipelineComplexity) el.pipelineComplexity.textContent = `${(1.2 + state.pipeline.features.length * 0.4).toFixed(1)}M params`;
-  if (el.trainingRowCount) el.trainingRowCount.textContent = String(state.samples.length);
-  if (el.trainingXp) el.trainingXp.textContent = `+${55 + state.pipeline.features.length * 8} XP`;
+  if (el.orderSymbol) el.orderSymbol.value = state.selectedSymbol;
+  if (el.orderOptionSymbol) el.orderOptionSymbol.value = option.optionSymbol;
+  if (el.orderPrice) el.orderPrice.value = option.mark.toFixed(2);
+  if (el.paperTradeStatus) {
+    el.paperTradeStatus.textContent = `Selected ${option.type.toUpperCase()} ${money(option.strike)} exp ${option.expiration}.`;
+  }
+  if (el.selectedContractCard) {
+    const breakEven = option.type === "call" ? option.strike + option.mark : option.strike - option.mark;
+    el.selectedContractCard.innerHTML = `
+      <div>
+        <p class="eyebrow">Expression</p>
+        <h2>${state.selectedSymbol} ${option.type.toUpperCase()} ${money(option.strike)}</h2>
+        <p class="selected-copy">${option.optionSymbol}</p>
+      </div>
+      <div class="selected-metrics">
+        <div><dt>Mark</dt><dd>${money(option.mark)}</dd></div>
+        <div><dt>Spread</dt><dd>${money(option.ask - option.bid)}</dd></div>
+        <div><dt>Break-even</dt><dd>${money(breakEven)}</dd></div>
+        <div><dt>Liquidity</dt><dd>${option.openInterest.toLocaleString()} OI</dd></div>
+      </div>
+    `;
+  }
+  if (el.scenarioGrid) {
+    const scenarios = [
+      { name: "Fast follow-through", outcome: money(option.mark * 100 * 0.75), copy: "Directional move arrives before theta dominates." },
+      { name: "Flat tape", outcome: money(option.mark * 100 * -0.25), copy: "The market drifts and the premium bleeds." },
+      { name: "IV crush", outcome: money(option.mark * 100 * -(0.2 + option.impliedVolatility * 0.25)), copy: "The thesis can be right while premium still compresses." },
+      { name: "Hard failure", outcome: money(option.mark * 100 * -0.8), copy: "The directional read loses decisively." },
+    ];
+    el.scenarioGrid.innerHTML = scenarios
+      .map(
+        (scenario) => `
+          <div>
+            <dt>${scenario.name}</dt>
+            <dd>${scenario.outcome}</dd>
+            <small>${scenario.copy}</small>
+          </div>
+        `,
+      )
+      .join("");
+  }
+  if (el.comparisonList) {
+    el.comparisonList.innerHTML = currentOptions()
+      .slice()
+      .sort((left, right) => right.openInterest + right.volume - (left.openInterest + left.volume))
+      .slice(0, 6)
+      .map(
+        (candidate) => `
+          <button class="compare-row ${candidate.optionSymbol === option.optionSymbol ? "active" : ""}" type="button" data-compare-option="${candidate.optionSymbol}">
+            <span><strong>${candidate.type.toUpperCase()} ${money(candidate.strike)}</strong><small>${candidate.expiration}</small></span>
+            <span><b>${money(candidate.mark)}</b><small>${candidate.openInterest.toLocaleString()} OI</small></span>
+          </button>
+        `,
+      )
+      .join("");
+    el.comparisonList.querySelectorAll<HTMLButtonElement>("[data-compare-option]").forEach((button) => {
+      button.addEventListener("click", () => {
+        selectedOptionSymbol = String(button.dataset.compareOption || "");
+        render();
+      });
+    });
+  }
 }
 
 function renderChoiceList<T extends { id: string; type: string }>(
@@ -975,75 +1102,146 @@ function renderChoiceList<T extends { id: string; type: string }>(
   });
 }
 
+function renderLab() {
+  renderChoiceList(el.architectureList, architectures, state.pipeline.architecture, () => undefined);
+  renderChoiceList(
+    el.featureList,
+    (Object.keys(featureLabels) as FeatureKey[]).map((key) => ({ id: key, type: featureLabels[key] })),
+    "",
+    (id) => {
+      const feature = id as FeatureKey;
+      state.pipeline.features = state.pipeline.features.includes(feature)
+        ? state.pipeline.features.filter((item) => item !== feature)
+        : [...state.pipeline.features, feature];
+      queueSave();
+      render();
+    },
+    state.pipeline.features,
+  );
+  renderChoiceList(
+    el.optimizerList,
+    optimizers.map((id) => ({ id, type: "Optimizer" })),
+    state.pipeline.optimizer,
+    () => undefined,
+  );
+  if (el.pipelineInputs) {
+    el.pipelineInputs.textContent = state.pipeline.features.length
+      ? state.pipeline.features.map((feature) => featureLabels[feature]).join(" + ")
+      : "No inputs connected";
+  }
+  if (el.pipelineCore) el.pipelineCore.textContent = state.pipeline.architecture;
+  if (el.pipelineType) el.pipelineType.textContent = state.pipeline.architectureType;
+  if (el.pipelineOptimizer) el.pipelineOptimizer.textContent = state.pipeline.optimizer;
+  if (el.pipelineComplexity) el.pipelineComplexity.textContent = "Interpretable weights";
+  if (el.trainingRowCount) el.trainingRowCount.textContent = String(state.summary.decisionCount);
+  if (el.trainingXp) el.trainingXp.textContent = `+${Math.max(20, state.summary.decisionCount * 2)} XP`;
+  if (el.labSummaryGrid) {
+    el.labSummaryGrid.innerHTML = `
+      <div><dt>Resolved rows</dt><dd>${state.summary.decisionCount}</dd><small>Replay outcomes</small></div>
+      <div><dt>Active model</dt><dd>${state.pipeline.architecture}</dd><small>${state.pipeline.features.length} features connected</small></div>
+      <div><dt>Last score</dt><dd>${state.modelMetrics ? `${Math.round(state.modelMetrics.accuracy * 100)}%` : "N/A"}</dd><small>Walk-forward accuracy</small></div>
+    `;
+  }
+  if (el.labNoteList) {
+    const notes = [
+      state.summary.decisionCount < 8
+        ? "Wait for at least 8 resolved replay outcomes before training the first model."
+        : "Compare walk-forward accuracy against Brier instead of trusting one headline number.",
+      state.events.length
+        ? `Latest event overlay: ${state.events[0].title}`
+        : "Use event overlays only after snapshots exist, and only if the context was available before the decision.",
+      "Feature selection is real. Architecture choice is intentionally simplified until more backends are implemented.",
+    ];
+    el.labNoteList.innerHTML = notes.map((note) => `<div><strong>Next</strong><small>${escapeHtml(note)}</small></div>`).join("");
+  }
+}
+
 function renderResearchLab() {
   const featureCount = state.pipeline.features.length;
-  const sampleCount = state.samples.length;
-  const modelScore = state.modelMetrics?.accuracy || 0;
   const readiness =
-    state.modelReady && sampleCount >= 25 ? "Ready for replay" : sampleCount >= 6 ? "Research mode" : "Needs labels";
+    state.modelReady && state.summary.decisionCount >= 12
+      ? "Replay ready"
+      : state.summary.decisionCount >= 8
+        ? "Trainable"
+        : "Needs outcomes";
   if (el.dataReadiness) el.dataReadiness.textContent = readiness;
-  if (el.contextBudget) el.contextBudget.textContent = `${Math.min(8, featureCount + 3)} / 8 signals`;
-  if (el.leakageBadge) {
-    el.leakageBadge.textContent = sampleCount >= 6 ? "Point-in-time check on" : "Needs more rows";
-  }
+  if (el.labFeedMode) el.labFeedMode.textContent = state.connected ? "Tradier snapshots" : "Awaiting broker link";
+  if (el.contextBudget) el.contextBudget.textContent = `${Math.min(8, featureCount + state.events.length)} / 8 signals`;
+  if (el.leakageBadge) el.leakageBadge.textContent = state.selectedSnapshot ? "Point-in-time snapshot" : "No snapshot yet";
   if (el.providerGrid) {
-    el.providerGrid.innerHTML = dataProviders
+    const providers = [
+      {
+        name: "Tradier Quotes + Chains",
+        status: state.connected ? "Active" : "Pending",
+        kind: "Replay substrate",
+        copy: state.connected ? "Fresh snapshots are being stored server-side." : "Connect Tradier to begin collecting snapshots.",
+      },
+      {
+        name: "Replay Outcomes",
+        status: state.summary.decisionCount ? "Learning" : "Cold start",
+        kind: "Resolved labels",
+        copy: "Forecasts close against later snapshots instead of self-labeling in the client.",
+      },
+      {
+        name: "Event Overlays",
+        status: state.events.length ? "Attached" : "Optional",
+        kind: "Manual context",
+        copy: "Add timestamped notes only after the replay substrate exists.",
+      },
+    ];
+    el.providerGrid.innerHTML = providers
       .map(
         (provider) => `
-          <button class="provider-card" type="button" data-provider="${escapeHtml(provider.name)}">
+          <div class="provider-card">
             <span>${provider.status}</span>
             <strong>${provider.name}</strong>
             <small>${provider.kind}</small>
             <em>${provider.copy}</em>
-          </button>
+          </div>
         `,
       )
       .join("");
-    el.providerGrid.querySelectorAll<HTMLButtonElement>("[data-provider]").forEach((button) => {
-      button.addEventListener("click", () => {
-        pushConsole(`${button.dataset.provider} queued for research-data curation.`);
-      });
-    });
   }
   if (el.contextMap) {
-    const selectedFeatures = state.pipeline.features.length ? state.pipeline.features : ["momentum", "volatility"];
+    const output = state.latestDecision
+      ? `${state.latestDecision.decision.toUpperCase()} ${(state.latestDecision.probability * 100).toFixed(0)}%`
+      : "No scan yet";
     el.contextMap.innerHTML = `
       <div class="context-column">
-        <span>Possible Context</span>
-        <b>Docs</b>
-        <b>Tools</b>
-        <b>Memory</b>
-        <b>Market tape</b>
+        <span>Snapshot Inputs</span>
+        <b>Quote</b>
+        <b>Option chain</b>
+        <b>Liquidity</b>
+        <b>IV</b>
       </div>
-      <div class="context-arrow">Curate</div>
+      <div class="context-arrow">Store</div>
       <div class="context-column active">
-        <span>Model Window</span>
-        <b>System: risk first</b>
-        ${selectedFeatures.map((feature) => `<b>${featureLabels[feature]}</b>`).join("")}
-        <b>Labels: ${sampleCount}</b>
+        <span>Replay Model</span>
+        ${state.pipeline.features.map((feature) => `<b>${featureLabels[feature]}</b>`).join("")}
+        <b>Events: ${state.events.length}</b>
       </div>
       <div class="context-arrow">Score</div>
       <div class="context-column output">
-        <span>Output</span>
-        <b>${state.forecast?.contract.toUpperCase() || "WAIT"}</b>
-        <b>${state.forecast ? `${(state.forecast.probability * 100).toFixed(0)}% confidence` : "No scan yet"}</b>
+        <span>Decision</span>
+        <b>${output}</b>
+        <b>${state.latestOutcome ? state.latestOutcome.label.replaceAll("_", " ") : "Pending outcome"}</b>
       </div>
     `;
   }
   if (el.validationGrid) {
-    const trainRows = state.modelMetrics?.training_rows || Math.max(8, sampleCount);
-    const walkForward = modelScore ? Math.max(42, Math.round(modelScore * 82)) : 52;
-    const brier = state.modelMetrics?.brier ?? 0.25;
-    const noTrade = Math.max(18, 52 - featureCount * 5);
     el.validationGrid.innerHTML = `
-      <div><dt>Train rows</dt><dd>${trainRows}</dd><small>Point-in-time only</small></div>
-      <div><dt>Walk-forward</dt><dd>${walkForward}%</dd><small>Paper replay target</small></div>
-      <div><dt>Brier</dt><dd>${brier.toFixed(3)}</dd><small>Calibration score</small></div>
-      <div><dt>No-trade gate</dt><dd>${noTrade}%</dd><small>Abstention pressure</small></div>
+      <div><dt>Resolved rows</dt><dd>${state.summary.decisionCount}</dd><small>Walk-forward eligible</small></div>
+      <div><dt>Avg score</dt><dd>${state.summary.avgScore !== null ? `${Math.round(state.summary.avgScore * 100)}%` : "N/A"}</dd><small>Out-of-sample decision score</small></div>
+      <div><dt>Brier</dt><dd>${state.modelMetrics ? state.modelMetrics.brier.toFixed(3) : "N/A"}</dd><small>Calibration</small></div>
+      <div><dt>No-trade wins</dt><dd>${state.summary.noTradeWinRate !== null ? `${Math.round(state.summary.noTradeWinRate * 100)}%` : "N/A"}</dd><small>Abstention quality</small></div>
     `;
   }
   if (el.labelLab) {
-    el.labelLab.innerHTML = labelRecipes
+    el.labelLab.innerHTML = [
+      { name: "Directional win", value: "Chosen side beats the opposite side on a later replay snapshot." },
+      { name: "No-trade win", value: "Both directional expressions stayed weak enough that patience was the correct call." },
+      { name: "Shadow score", value: "Shadow mode is tracked separately instead of being cosmetic." },
+    ]
       .map(
         (recipe) => `
           <div>
@@ -1056,18 +1254,52 @@ function renderResearchLab() {
   }
 }
 
-function renderChallenges() {
-  if (!el.challengeList) return;
-  el.challengeList.innerHTML = challenges
-    .map(
-      (challenge) => `
-        <div class="challenge-row">
-          <span><strong>${challenge.name}</strong><small>${challenge.copy}</small></span>
-          <b>${challenge.reward}</b>
-        </div>
-      `,
-    )
-    .join("");
+function renderArena() {
+  if (el.arenaStatGrid) {
+    const wins = state.trades.filter((trade) => trade.outcomeLabel === "win").length;
+    el.arenaStatGrid.innerHTML = `
+      <div><dt>Resolved</dt><dd>${state.summary.decisionCount}</dd><small>Replay decisions</small></div>
+      <div><dt>Wins</dt><dd>${wins}</dd><small>Closed paper positions</small></div>
+      <div><dt>Shadow</dt><dd>${state.summary.shadowScore !== null ? `${Math.round(state.summary.shadowScore * 100)}%` : "N/A"}</dd><small>Separate mode score</small></div>
+    `;
+  }
+  if (el.leaderboard) {
+    el.leaderboard.innerHTML = state.leaderboard.length
+      ? state.leaderboard
+          .slice(0, 10)
+          .map(
+            (leader, index) => `
+              <div class="leader-row">
+                <span>${index + 1}</span>
+                <strong>${escapeHtml(leader.display_name)}</strong>
+                <em>${leader.evaluated_decisions} evals</em>
+                <b>${leader.avg_score !== null ? `${Math.round(leader.avg_score * 100)}%` : "N/A"}</b>
+              </div>
+            `,
+          )
+          .join("")
+      : "<p>No scored replay outcomes yet.</p>";
+  }
+  if (el.challengeList) {
+    const challenges = [
+      "Capture one paper scan and one shadow scan on the same symbol, then compare how the later score resolves them.",
+      "Find a symbol where no-trade wins because IV or liquidity made the directional thesis too expensive.",
+      "Attach one timestamped event overlay only if the context truly existed before the scan.",
+    ];
+    el.challengeList.innerHTML = challenges
+      .map((challenge, index) => `<div class="challenge-row"><span><strong>Challenge ${index + 1}</strong><small>${escapeHtml(challenge)}</small></span><b>Replay</b></div>`)
+      .join("");
+  }
+  if (el.replayList) {
+    const replays = [
+      { name: "Open Drive", copy: "Refresh the same symbol twice and inspect how the first scan resolved." },
+      { name: "Quiet Tape", copy: "Look for a no-trade win where both directional expressions stayed weak." },
+      { name: "Event Crosscheck", copy: "Compare a scan before and after adding a timestamped context note." },
+    ];
+    el.replayList.innerHTML = replays
+      .map((replay) => `<div class="replay-row"><strong>${replay.name}</strong><small>${replay.copy}</small></div>`)
+      .join("");
+  }
 }
 
 function switchView(view: ViewName) {
@@ -1079,10 +1311,6 @@ function switchView(view: ViewName) {
   });
   if (view === "league") void refreshLeaderboard().then(render);
   if (view === "vault") void refreshTradierStatus();
-}
-
-function escapeHtml(value: string) {
-  return value.replace(/[&<>"']/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;" })[char] || char);
 }
 
 function bindEvents() {
@@ -1102,15 +1330,31 @@ function bindEvents() {
     window.location.href = "/login";
   });
   el.openLab?.addEventListener("click", () => switchView("lab"));
-  el.scanSymbol?.addEventListener("click", () => void forecastSymbol());
-  el.refreshMarket?.addEventListener("click", render);
+  el.scanSymbol?.addEventListener("click", () => void captureScan(state.paperMode));
+  el.refreshMarket?.addEventListener("click", () => void refreshDashboard(currentSymbol()).then(() => {
+    setStatus(el.forecastStatus, "Replay store refreshed from Tradier.", "success");
+    render();
+  }).catch((error) => {
+    setStatus(el.forecastStatus, error instanceof Error ? error.message : String(error), "error");
+  }));
   el.symbolInput?.addEventListener("keydown", (event) => {
-    if (event.key === "Enter") void forecastSymbol();
+    if (event.key === "Enter") void captureScan(state.paperMode);
   });
-  el.paperDrill?.addEventListener("click", runPaperDrill);
-  el.recordCall?.addEventListener("click", () => recordOutcome("call"));
-  el.recordPut?.addEventListener("click", () => recordOutcome("put"));
+  el.paperDrill?.addEventListener("click", () => void refreshDashboard(currentSymbol()).then(() => {
+    pushConsole(`Replay store refreshed for ${currentSymbol()}.`);
+    setStatus(el.forecastStatus, "Replay store refreshed. Older open decisions may now be resolved.", "success");
+    render();
+  }).catch((error) => {
+    setStatus(el.forecastStatus, error instanceof Error ? error.message : String(error), "error");
+  }));
+  el.recordCall?.addEventListener("click", () => void captureScan("paper"));
+  el.recordPut?.addEventListener("click", () => void captureScan("shadow"));
+  el.paperTrade?.addEventListener("click", () => void submitPaperTrade());
   el.trainModel?.addEventListener("click", () => void trainModel());
+  el.eventForm?.addEventListener("submit", (event) => {
+    event.preventDefault();
+    void submitEventOverlay();
+  });
   el.tradierForm?.addEventListener("submit", async (event) => {
     event.preventDefault();
     setStatus(el.tradierStatus, "Saving encrypted broker link...");
@@ -1127,6 +1371,8 @@ function bindEvents() {
       if (el.tradierToken) el.tradierToken.value = "";
       setStatus(el.tradierStatus, "Broker link saved server-side.", "success");
       await refreshTradierStatus();
+      await refreshDashboard(state.selectedSymbol);
+      render();
     } catch (error) {
       setStatus(el.tradierStatus, error instanceof Error ? error.message : String(error), "error");
     }
@@ -1141,7 +1387,7 @@ function bindEvents() {
         body: JSON.stringify(orderPayload()),
       });
       setStatus(el.orderStatus, "Preview response stored. Review broker details before any placement.", "success");
-      pushConsole("Tradier preview requested through server-side vault.");
+      pushConsole("Tradier preview requested through the server-side vault.");
     } catch (error) {
       setStatus(el.orderStatus, error instanceof Error ? error.message : String(error), "error");
     }
@@ -1170,21 +1416,23 @@ async function boot() {
   }
   csrfToken = session.csrf_token;
   bindEvents();
-  pushConsole("Desk initialized. Paper mode active.");
+  pushConsole("Cumulonimbus desk initialized.");
   try {
     const saved = await api<{ ok: true; state: unknown }>("/api/game/state");
     hydrate(saved.state);
   } catch {
-    pushConsole("No saved cockpit state found.");
+    pushConsole("No saved desk preferences found.");
   }
-  await refreshModelStatus();
+  await refreshDashboard(state.selectedSymbol).catch((error) => {
+    state.message = error instanceof Error ? error.message : String(error);
+  });
   await refreshLeaderboard();
   render();
   void refreshTradierStatus();
 }
 
 void boot().catch((error) => {
-  document.body.innerHTML = `<main class="fatal-error"><h1>Option Oracle could not start</h1><p>${escapeHtml(
+  document.body.innerHTML = `<main class="fatal-error"><h1>Cumulonimbus could not start</h1><p>${escapeHtml(
     error instanceof Error ? error.message : String(error),
   )}</p><a href="/login">Return to login</a></main>`;
 });
@@ -1198,11 +1446,11 @@ declare global {
 
 window.render_game_to_text = () =>
   [
-    `Option Oracle Arena`,
+    "Cumulonimbus",
     `symbol=${state.selectedSymbol}`,
-    `balance=${state.balance}`,
-    `level=${state.level}`,
-    `samples=${state.samples.length}`,
+    `balance=${state.summary.balance}`,
+    `level=${derivedLevel()}`,
+    `resolved=${state.summary.decisionCount}`,
     `modelReady=${state.modelReady}`,
     `trades=${state.trades.length}`,
     `latestPreview=${latestPreview ? "yes" : "no"}`,

@@ -2,7 +2,7 @@ import { requireDb } from "../../_lib/db.js";
 import { requireSession } from "../../_lib/auth.js";
 import { json, readJson } from "../../_lib/http.js";
 import { requireSameOriginAndCsrf } from "../../_lib/security.js";
-import { predictWithWeights } from "../../_lib/model.js";
+import { parseStoredModel, predictWithWeights } from "../../_lib/model.js";
 
 export async function onRequestPost(context) {
   const auth = await requireSession(context);
@@ -24,12 +24,10 @@ export async function onRequestPost(context) {
     .bind(auth.session.user.id)
     .first();
   if (!row) {
-    return json({ ok: false, error: "Train an oracle model before requesting predictions." }, 409);
+    return json({ ok: false, error: "Train a Cumulonimbus replay model before requesting predictions." }, 409);
   }
-  const weights = JSON.parse(row.weights_json);
-  const bias = Number(weights.bias || 0);
-  delete weights.bias;
-  const prediction = predictWithWeights({ weights, bias }, body.features || {});
+  const model = parseStoredModel(row);
+  const prediction = predictWithWeights(model, body.features || {}, model.features);
   return json({
     ok: true,
     symbol: String(body.symbol || "SPY").toUpperCase().slice(0, 12),

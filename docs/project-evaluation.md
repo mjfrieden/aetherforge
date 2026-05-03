@@ -6,7 +6,7 @@ Date: 2026-04-21
 
 Orographic is the stronger base for a deployable trading game because it already has a Cloudflare Pages surface, protected login flow, server-side Tradier proxy routes, and a Scout -> Forge -> Council architecture that maps cleanly into game verbs. Cirrus is the stronger base for research discipline because it has playbooks, a no-trade gate, empirical edge checks, and lightweight live-versus-shadow performance tracking.
 
-The new Aetherforge project borrows the operating shape from both without copying their secrets or brokerage assumptions: Orographic contributes the "server owns broker credentials" pattern, while Cirrus contributes playbook gates, abstention, and auditability.
+The new Cumulonimbus project borrows the operating shape from both without copying their secrets or brokerage assumptions: Orographic contributes the "server owns broker credentials" pattern, while Cirrus contributes playbook gates, abstention, and auditability.
 
 ## Orographic Findings
 
@@ -41,16 +41,16 @@ Risks:
 - Current strategy behavior appears narrow, especially same-week downside continuation puts in risk-off regimes.
 - The pipeline is still tightly coupled around ingestion, ranking, reporting, and persistence.
 
-## Product Direction For Aetherforge
+## Product Direction For Cumulonimbus
 
-Aetherforge is intentionally a new multi-user app:
+Cumulonimbus is intentionally a new multi-user app:
 
 - Browser game first screen with a cloud-temple trading theme.
 - D1-backed accounts, sessions, saved progress, model artifacts, audit logs, and leaderboard state.
 - Per-user encrypted Tradier token/account storage.
 - Server-side Tradier calls only; the browser never receives a broker token.
 - Sandbox-first order preview and placement with live trading globally disabled unless explicitly armed.
-- A small per-user logistic model that players train from game-collected samples before making forecasts.
+- A replay-trained per-user logistic model that learns from resolved market snapshots instead of game-collected samples.
 
 ## Security Posture
 
