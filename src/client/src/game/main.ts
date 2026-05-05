@@ -1,6 +1,7 @@
 import { api, getSession, type SessionPayload } from "../api";
 
 type ViewName = "desk" | "lab" | "league" | "vault";
+type LabTabName = "overview" | "features" | "imports" | "score";
 type PaperMode = "paper" | "shadow";
 type DecisionType = "call" | "put" | "no_trade";
 type FeatureKey = "change_pct" | "intraday_range" | "atm_iv" | "liquidity" | "call_put_skew";
@@ -244,6 +245,7 @@ let session: SessionPayload | null = null;
 let latestPreview: Record<string, unknown> | null = null;
 let selectedOptionSymbol = "";
 let activeView: ViewName = "desk";
+let activeLabTab: LabTabName = "overview";
 
 const state: AppState = {
   selectedSymbol: "SPY",
@@ -820,21 +822,21 @@ function pushConsole(message: string) {
 function decisionText() {
   if (!state.latestDecision) {
     return {
-      action: "Awaiting Model Run",
+      action: "Start With One Symbol",
       copy: state.connected
-        ? "Capture a labeled scan so your model can score call, put, or no-trade from real market snapshots."
-        : state.message || "Connect Tradier or load demo data to begin building your model history.",
+        ? "Capture a fresh scan when you want new live data for your model."
+        : state.message || "Use the demo history to learn the flow, then connect a broker when you want live snapshots.",
     };
   }
   if (state.latestDecision.decision === "no_trade") {
     return {
-      action: "No-Trade Watch",
-      copy: "Your model prefers patience here. Thin liquidity, elevated IV, or weak directional edge outweighed the case for action.",
+      action: "Wait For A Better Setup",
+      copy: "Your model does not see a clear edge right now. That is a valid result.",
     };
   }
   return {
-    action: `${state.latestDecision.decision === "call" ? "Call Bias" : "Put Hedge"} ${Math.round(state.latestDecision.probability * 100)}%`,
-    copy: `${state.latestDecision.symbol} rose to the top because your feature stack leaned that way. Treat the prediction as a thesis, then test execution quality.`,
+    action: `${state.latestDecision.symbol} ${state.latestDecision.decision === "call" ? "Call" : "Put"} ${Math.round(state.latestDecision.probability * 100)}%`,
+    copy: "Review the idea, compare the contract choices, and paper trade it only if it still makes sense.",
   };
 }
 
@@ -842,38 +844,47 @@ function renderTopbar() {
   const station =
     activeView === "vault"
       ? {
-          eyebrow: "Predictions and execution",
-          title: "Predictions",
-          note: "Inspect the trade idea your model prefers, compare alternatives, and commit only if execution quality survives scrutiny.",
+          eyebrow: "Simple idea review",
+          title: "Ideas",
+          note: "Look at one trade idea at a time. Compare the choices, then practice before you risk anything.",
         }
       : activeView === "lab"
         ? {
-            eyebrow: "Feature workshop and retraining",
-            title: "Workshop",
-            note: "Improve the one model by changing features, importing ideas, logging hypotheses, and retraining only when the evidence is ready.",
+            eyebrow: "Improve the model",
+            title: "Improve",
+            note: "Change only a few things at once. Save a new version when the evidence is ready.",
           }
         : activeView === "league"
           ? {
-              eyebrow: "Open model community",
+              eyebrow: "Simple community view",
               title: "Community",
-              note: "Share feature ideas, study public baselines, and import open-source packs without losing ownership of your own model loop.",
+              note: "Browse public ideas, compare packs, and learn from what other people are trying.",
             }
           : {
-              eyebrow: "My evolving options model",
-              title: "My Model",
-              note: "One model, one feedback loop. Capture outcomes, improve the feature set, and let every retrain earn its place.",
+              eyebrow: "One model, one home screen",
+              title: "Home",
+              note: "Review the best ideas, understand what your model is doing, and keep the next step obvious.",
             };
   if (el.topbarEyebrow) el.topbarEyebrow.textContent = station.eyebrow;
   if (el.topbarTitle) el.topbarTitle.textContent = station.title;
   if (el.topbarNote) el.topbarNote.textContent = station.note;
   if (el.topbarBadges) {
     const badges = [
-      state.connected ? "Broker linked" : "Replay disconnected",
-      state.selectedSnapshot ? `Snapshot ${new Date(state.selectedSnapshot.snapshotAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}` : "No snapshot",
-      state.latestOutcome ? state.latestOutcome.label.replaceAll("_", " ") : "Pending outcome",
+      state.connected ? "Live broker linked" : "Demo mode",
+      state.modelVersions[0]?.version || "No version yet",
+      state.selectedSnapshot ? state.selectedSnapshot.symbol : state.selectedSymbol,
     ];
     el.topbarBadges.innerHTML = badges.map((badge) => `<span>${escapeHtml(badge)}</span>`).join("");
   }
+}
+
+function renderLabTabs() {
+  document.querySelectorAll<HTMLButtonElement>("[data-lab-tab]").forEach((button) => {
+    button.classList.toggle("active", button.dataset.labTab === activeLabTab);
+  });
+  document.querySelectorAll<HTMLElement>("[data-lab-pane]").forEach((pane) => {
+    pane.classList.toggle("active", pane.dataset.labPane === activeLabTab);
+  });
 }
 
 function render() {
@@ -969,8 +980,8 @@ function renderMissionControl() {
               <button class="setup-row ${setup.symbol === state.selectedSymbol ? "active" : ""}" type="button" data-setup-symbol="${setup.symbol}">
                 <span class="setup-rank">${index + 1}</span>
                 <span>
-                  <strong>${setup.symbol} ${setup.decision === "no_trade" ? "hold" : setup.decision}</strong>
-                  <small>${setup.regime} style - ${new Date(setup.snapshotAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</small>
+                  <strong>${setup.symbol} ${setup.decision === "no_trade" ? "wait" : setup.decision}</strong>
+                  <small>${setup.regime} • ${new Date(setup.snapshotAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</small>
                 </span>
                 <span>
                   <b>${Math.round(setup.score * 100)}%</b>
@@ -993,22 +1004,22 @@ function renderMissionControl() {
   if (el.objectiveList) {
     const objectives = [
       {
-        title: state.connected ? "Capture the next label" : "Connect data",
+        title: state.connected ? "Refresh live ideas" : "Use the demo history",
         copy: state.connected
-          ? "Fetch a fresh snapshot, store the prediction, then let later market action tell your model whether it was right."
-          : "This model learns from replay history, so real market snapshots start after the broker link or demo feed is ready.",
+          ? "Scan a symbol when you want a fresh snapshot from the market."
+          : "Start with the seeded history so you can learn the product before connecting anything.",
       },
       {
-        title: state.modelReady ? "Stress the best ideas" : "Build training history",
+        title: state.modelReady ? "Review one idea at a time" : "Let the model learn",
         copy: state.modelReady
-          ? "Use ranked predictions, no-trade pressure, and review notes to decide whether the model deserves execution."
-          : "Resolved outcomes unlock retraining. Until then, the product should make the cold-start state explicit.",
+          ? "Open the Ideas screen and compare the contract choices before you paper trade."
+          : "As more outcomes are graded, you can retrain and save better versions.",
       },
       {
-        title: state.events.length ? "Version the next idea" : "Design the next feature",
+        title: state.events.length ? "Keep notes short" : "Change only a little",
         copy: state.events.length
-          ? "Keep a journal of what you changed so every retrain has a reason behind it."
-          : "Great models improve because someone proposes the next feature, tests it, and keeps score.",
+          ? "Write down why you changed something so the next version makes sense."
+          : "Simple models are easier to trust. Add features only when they clearly help.",
       },
     ];
     el.objectiveList.innerHTML = objectives
@@ -1027,10 +1038,10 @@ function renderMissionControl() {
   if (el.snapshotGrid) {
     if (!state.selectedSnapshot) {
       el.snapshotGrid.innerHTML = `
-        <div><dt>Status</dt><dd>${state.connected ? "Ready" : "Offline"}</dd><small>${state.connected ? "The model is waiting for the next captured label" : "Broker link required before the first snapshot"}</small></div>
+        <div><dt>Status</dt><dd>${state.connected ? "Live ready" : "Demo ready"}</dd><small>${state.connected ? "Scan when you want a fresh idea" : "Seeded data is loaded so you can practice right away"}</small></div>
         <div><dt>Focus</dt><dd>${state.selectedSymbol}</dd><small>Current symbol on deck</small></div>
-        <div><dt>Next step</dt><dd>${state.connected ? "Capture label" : "Connect data"}</dd><small>${state.connected ? "Store the first timestamped prediction" : "Unlock live replay data"}</small></div>
-        <div><dt>Version</dt><dd>${state.modelReady ? "Live" : "Cold start"}</dd><small>${state.summary.decisionCount} resolved outcomes so far</small></div>
+        <div><dt>Next step</dt><dd>${state.connected ? "Scan now" : "Review ideas"}</dd><small>${state.connected ? "Store the next prediction" : "Open one idea and learn the flow"}</small></div>
+        <div><dt>Version</dt><dd>${state.modelVersions[0]?.version || "v0"}</dd><small>${state.summary.decisionCount} graded outcomes so far</small></div>
       `;
     } else {
       const quote = currentQuote();
@@ -1212,12 +1223,14 @@ function renderTradeDetail() {
     if (el.selectedContractCard) {
       el.selectedContractCard.innerHTML = `
         <div>
-          <p class="eyebrow">Predictions</p>
-          <h2>${state.connected ? "Awaiting first trade idea" : "Broker link required"}</h2>
+          <p class="eyebrow">Ideas</p>
+          <h2>${state.setups.length ? "Choose an idea from Home" : "Ideas will show up here"}</h2>
           <p class="selected-copy">${
-            state.connected
-              ? "Capture a labeled scan from My Model and the strongest contract idea will appear here for inspection."
-              : "Connect Tradier first, then My Model can pull the option chain and build a real prediction review surface."
+            state.setups.length
+              ? "Pick one setup from Home and the contract details will appear here."
+              : state.connected
+                ? "Scan a symbol to create a fresh idea."
+                : "Use the demo history on Home first, then connect a broker when you want live snapshots."
           }</p>
         </div>
       `;
@@ -1355,6 +1368,7 @@ function renderChoiceList<T extends { id: string; type: string }>(
 }
 
 function renderLab() {
+  renderLabTabs();
   renderChoiceList(el.architectureList, architectures, state.pipeline.architecture, () => undefined);
   renderChoiceList(
     el.featureList,
@@ -1416,12 +1430,12 @@ function renderLab() {
   if (el.labNoteList) {
     const notes = [
       state.summary.decisionCount < 8
-        ? "Wait for at least 8 resolved outcomes before trusting the first retrain."
-        : "Compare walk-forward accuracy against Brier instead of trusting one headline number.",
+        ? "Wait for at least 8 graded outcomes before you trust a retrain."
+        : "Look at accuracy and Brier together, not just one number.",
       state.modelVersions[0]
-        ? `Current live version: ${state.modelVersions[0].version} with ${state.modelVersions[0].featureCount} trainable features.`
-        : "Log feature ideas only when you can explain why they should improve the model.",
-      state.events.length ? `Latest feature note: ${state.events[0].title}` : "Keep architecture simple until feature quality and labels have earned more complexity.",
+        ? `Current live version: ${state.modelVersions[0].version} with ${state.modelVersions[0].featureCount} active features.`
+        : "Write feature ideas only when you can explain them in plain English.",
+      state.events.length ? `Latest note: ${state.events[0].title}` : "Keep the model simple until the data clearly asks for more.",
     ];
     el.labNoteList.innerHTML = notes.map((note) => `<div><strong>Next</strong><small>${escapeHtml(note)}</small></div>`).join("");
   }
@@ -1506,7 +1520,7 @@ function renderResearchLab() {
         value: manifest.manifest.summary || manifest.description,
       }))
       .concat([
-        { name: "Ablation pass", value: "Every imported idea should be tested by adding and removing it against the same walk-forward split." },
+        { name: "Ablation pass", value: "Test one added feature at a time so you know what actually helped." },
       ])
       .map(
         (recipe) => `
@@ -1569,8 +1583,8 @@ function renderArena() {
   if (el.challengeList) {
     const challenges = [
       `Design one new feature that should improve ${state.latestDecision?.decision === "no_trade" ? "no-trade discipline" : "calibration"}, then explain how you would ablation-test it.`,
-      "Fork the default feature set and remove one input. Decide whether the model became clearer or weaker.",
-      "Write a feature note that explains what data source and normalization a community pack should require.",
+      "Remove one feature and see if the model gets clearer or weaker.",
+      "Write one short note that explains why a new pack should exist before you import it.",
     ];
     el.challengeList.innerHTML = challenges
       .map((challenge, index) => `<div class="challenge-row"><span><strong>Quest ${index + 1}</strong><small>${escapeHtml(challenge)}</small></span><b>Build</b></div>`)
@@ -1624,6 +1638,12 @@ function bindEvents() {
   });
   document.querySelectorAll<HTMLButtonElement>("[data-open-workshop]").forEach((button) => {
     button.addEventListener("click", () => switchView("lab"));
+  });
+  document.querySelectorAll<HTMLButtonElement>("[data-lab-tab]").forEach((button) => {
+    button.addEventListener("click", () => {
+      activeLabTab = (button.dataset.labTab || "overview") as LabTabName;
+      renderLabTabs();
+    });
   });
   el.scanSymbol?.addEventListener("click", () => void captureScan(state.paperMode));
   el.refreshMarket?.addEventListener("click", () => {

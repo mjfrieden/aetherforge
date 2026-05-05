@@ -164,10 +164,11 @@ dd {
 .gate-body,
 .auth-body {
   min-height: 100svh;
-  color: #102024;
+  color: var(--ink);
   background:
-    radial-gradient(circle at 24% 10%, rgba(255, 255, 255, 0.92), transparent 23rem),
-    linear-gradient(145deg, #9ed3e4 0%, #eef8f4 58%, #e7e5c8 100%);
+    radial-gradient(circle at 74% -12%, rgba(79, 70, 229, 0.24), transparent 28rem),
+    radial-gradient(circle at 18% 18%, rgba(56, 189, 248, 0.1), transparent 22rem),
+    linear-gradient(180deg, #020617 0%, #08111f 62%, #0f172a 100%);
 }
 
 .gate-layout,
@@ -225,45 +226,51 @@ dd {
 }
 
 .auth-shell {
-  grid-template-columns: minmax(0, 1fr) minmax(340px, 430px);
-  gap: 18px;
+  grid-template-columns: minmax(360px, 0.95fr) minmax(340px, 430px);
+  gap: 22px;
+  align-items: stretch;
 }
 
 .auth-art,
 .auth-panel {
   border-radius: 8px;
-  box-shadow: var(--shadow);
+  border: 1px solid rgba(148, 163, 184, 0.12);
+  box-shadow: 0 18px 42px rgba(2, 6, 23, 0.18);
 }
 
 .auth-art {
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-end;
+  display: grid;
+  align-content: start;
+  gap: 16px;
   min-height: calc(100svh - 40px);
-  padding: clamp(24px, 5vw, 64px);
-  color: #fffdf5;
+  padding: clamp(28px, 5vw, 56px);
+  color: var(--ink);
   background:
-    linear-gradient(90deg, rgba(8, 21, 25, 0.72), rgba(8, 21, 25, 0.06)),
-    url("../assets/generated/battle-cloud-colosseum.png") center / cover;
+    linear-gradient(rgba(246, 251, 247, 0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(246, 251, 247, 0.025) 1px, transparent 1px),
+    rgba(5, 19, 16, 0.88);
+  background-size: 28px 28px;
 }
 
 .auth-art h1 {
-  font-size: clamp(2.4rem, 5vw, 5.8rem);
+  max-width: 16ch;
+  font-size: clamp(2.2rem, 4.8vw, 4.8rem);
+  line-height: 1.02;
 }
 
 .auth-art-register {
-  background-position: 58% center;
+  background-position: center;
 }
 
 .auth-panel {
   align-self: center;
-  padding: 22px;
-  color: #102024;
-  background: rgba(255, 255, 248, 0.92);
+  padding: 24px;
+  color: var(--ink);
+  background: rgba(10, 18, 26, 0.88);
 }
 
 .auth-panel .eyebrow {
-  color: #607042;
+  color: var(--accent-2);
 }
 
 .auth-panel form {
@@ -273,22 +280,91 @@ dd {
 }
 
 .auth-panel input {
-  color: #102024;
-  background: rgba(255, 255, 255, 0.9);
+  color: var(--ink);
+  background: rgba(3, 9, 11, 0.55);
 }
 
 .auth-panel button {
-  color: #fff;
-  background: #102f36;
+  color: var(--ink);
+  background: rgba(20, 199, 159, 0.14);
+  border-color: rgba(20, 199, 159, 0.36);
 }
 
 .auth-switch {
   margin: 14px 0 0;
+  color: var(--muted);
   font-weight: 700;
 }
 
 .auth-switch a {
-  color: #087f91;
+  color: var(--accent-2);
+}
+
+.auth-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  width: max-content;
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.auth-brand-mark {
+  display: grid;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  border: 1px solid rgba(129, 140, 248, 0.46);
+  border-radius: 8px;
+  background:
+    radial-gradient(circle at 28% 20%, rgba(56, 189, 248, 0.22), transparent 1.8rem),
+    linear-gradient(145deg, rgba(15, 23, 42, 0.98), rgba(30, 41, 59, 0.92));
+}
+
+.auth-brand-mark svg {
+  width: 44px;
+  height: 44px;
+}
+
+.auth-chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.auth-chip-row span {
+  display: inline-flex;
+  align-items: center;
+  min-height: 30px;
+  border: 1px solid rgba(148, 163, 184, 0.14);
+  border-radius: 999px;
+  padding: 4px 10px;
+  color: var(--muted);
+  background: rgba(15, 23, 42, 0.52);
+  font-size: 0.76rem;
+  font-weight: 800;
+}
+
+.auth-note-list {
+  display: grid;
+  gap: 10px;
+  margin-top: auto;
+}
+
+.auth-note-list div {
+  display: grid;
+  gap: 4px;
+  border: 1px solid rgba(148, 163, 184, 0.1);
+  border-radius: 8px;
+  padding: 12px;
+  background: rgba(4, 10, 16, 0.62);
+}
+
+.auth-note-list small,
+.auth-panel-copy {
+  color: var(--muted);
+  font-size: 0.88rem;
+  line-height: 1.45;
 }
 
 .game-body {
@@ -2226,5 +2302,402 @@ dt,
   .detail-greek-grid,
   .outcome-grid {
     grid-template-columns: 1fr;
+  }
+}
+
+/* Declutter pass */
+
+.view-panel.active {
+  display: grid;
+  gap: 18px;
+}
+
+.oracle-shell {
+  grid-template-columns: 220px minmax(0, 1fr);
+  gap: 22px;
+  padding: 22px;
+}
+
+.oracle-rail {
+  gap: 18px;
+}
+
+.rail-nav button {
+  min-height: 42px;
+  font-size: 0.95rem;
+}
+
+.oracle-topbar {
+  grid-template-columns: minmax(0, 1fr) minmax(320px, 440px);
+  gap: 18px;
+  margin-bottom: 0;
+}
+
+.topbar-note {
+  max-width: 52rem;
+  margin-top: 8px;
+  color: var(--muted);
+  font-size: 0.94rem;
+  line-height: 1.45;
+}
+
+.topbar-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.topbar-badges span {
+  display: inline-flex;
+  align-items: center;
+  min-height: 30px;
+  border: 1px solid rgba(148, 163, 184, 0.14);
+  border-radius: 999px;
+  padding: 4px 10px;
+  color: var(--muted);
+  background: rgba(15, 23, 42, 0.52);
+  font-size: 0.76rem;
+  font-weight: 800;
+}
+
+.home-card,
+.home-hero,
+.prediction-side > section,
+.prediction-main,
+.lab-header-card {
+  border: 1px solid rgba(148, 163, 184, 0.12);
+  border-radius: 8px;
+  padding: 16px;
+  background: rgba(10, 18, 26, 0.78);
+  box-shadow: 0 18px 42px rgba(2, 6, 23, 0.18);
+}
+
+.home-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(300px, 0.8fr);
+  gap: 16px;
+  align-items: stretch;
+}
+
+.home-hero-copy {
+  display: grid;
+  gap: 14px;
+  align-content: start;
+}
+
+.home-hero-copy h2,
+.home-card h2,
+.prediction-main h2 {
+  font-size: clamp(1.3rem, 2vw, 2rem);
+}
+
+.hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.home-status {
+  display: grid;
+  gap: 12px;
+  align-content: start;
+}
+
+.home-status-grid,
+.snapshot-grid.compact {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.home-status-grid > div,
+.snapshot-grid.compact > div,
+.model-score,
+.importance-row,
+.objective-row,
+.event-row,
+.trade-row,
+.replay-row,
+.leader-row {
+  border: 1px solid rgba(148, 163, 184, 0.1);
+  border-radius: 8px;
+  background: rgba(4, 10, 16, 0.6);
+}
+
+.home-status-grid > div,
+.snapshot-grid.compact > div {
+  padding: 10px 11px;
+}
+
+.home-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(280px, 0.85fr);
+  gap: 16px;
+}
+
+.home-secondary-grid {
+  display: none;
+}
+
+.home-card-main .setup-list,
+.watchlist,
+.trade-journal,
+.event-list,
+.objective-list,
+.comparison-list,
+.version-list,
+.league-board,
+.challenge-list,
+.replay-list {
+  display: grid;
+  gap: 10px;
+}
+
+.watch-row,
+.setup-row,
+.compare-row,
+.trade-row,
+.event-row,
+.objective-row,
+.replay-row,
+.leader-row,
+.challenge-row {
+  border-color: rgba(148, 163, 184, 0.1);
+  background: rgba(4, 10, 16, 0.62);
+}
+
+.watch-row,
+.setup-row,
+.compare-row,
+.trade-row,
+.challenge-row {
+  padding: 12px;
+}
+
+.watch-row:hover,
+.setup-row:hover,
+.compare-row:hover,
+.provider-card:hover {
+  border-color: rgba(20, 199, 159, 0.34);
+  background: rgba(8, 18, 18, 0.82);
+}
+
+.watch-row.active,
+.setup-row.active,
+.compare-row.active,
+.version-row.active {
+  border-color: rgba(20, 199, 159, 0.44);
+  background: rgba(20, 199, 159, 0.1);
+}
+
+.setup-row {
+  grid-template-columns: 36px minmax(0, 1fr) auto;
+}
+
+.setup-rank {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 999px;
+  color: var(--ink);
+  background: rgba(20, 199, 159, 0.22);
+  font-size: 0.8rem;
+  font-weight: 900;
+}
+
+.model-score {
+  display: grid;
+  gap: 4px;
+  padding: 12px;
+  margin-bottom: 12px;
+}
+
+.model-score span {
+  font-size: 1.6rem;
+  font-weight: 900;
+}
+
+.importance-list {
+  display: grid;
+  gap: 8px;
+}
+
+.importance-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  padding: 10px 11px;
+}
+
+.importance-row i {
+  grid-column: 1 / -1;
+}
+
+.objective-row,
+.event-row {
+  display: grid;
+  gap: 4px;
+  padding: 12px;
+}
+
+.event-row p {
+  color: var(--muted);
+  font-size: 0.82rem;
+  line-height: 1.45;
+}
+
+.signal-tools {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.predictions-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(320px, 0.85fr);
+  gap: 16px;
+}
+
+.prediction-side {
+  display: grid;
+  gap: 16px;
+}
+
+.selected-contract-card,
+.detail-greek-grid,
+.scenario-grid,
+.outcome-grid {
+  margin-top: 12px;
+}
+
+.lab-tabs {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.lab-tabs button {
+  min-height: 38px;
+  border-color: rgba(148, 163, 184, 0.12);
+  color: var(--muted);
+  background: rgba(10, 18, 26, 0.62);
+}
+
+.lab-tabs button.active {
+  color: var(--ink);
+  background: rgba(20, 199, 159, 0.14);
+  border-color: rgba(20, 199, 159, 0.38);
+}
+
+.lab-pane {
+  display: none;
+}
+
+.lab-pane.active {
+  display: block;
+}
+
+.lab-simple-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.lab-simple-grid > .home-card:last-child:nth-child(odd) {
+  grid-column: 1 / -1;
+}
+
+.version-row {
+  padding: 11px 12px;
+}
+
+.provider-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.provider-card {
+  min-height: 0;
+  padding: 12px;
+}
+
+.provider-card small,
+.provider-card em {
+  line-height: 1.4;
+}
+
+.context-map {
+  min-height: 0;
+}
+
+.community-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.arena-stat-grid,
+.validation-grid,
+.detail-greek-grid,
+.scenario-grid,
+.outcome-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+@media (max-width: 1180px) {
+  .oracle-shell {
+    grid-template-columns: 1fr;
+  }
+
+  .oracle-topbar,
+  .home-hero,
+  .home-grid,
+  .home-secondary-grid,
+  .predictions-layout,
+  .lab-simple-grid,
+  .community-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .prediction-side {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 760px) {
+  .oracle-shell {
+    padding: 12px;
+    gap: 14px;
+  }
+
+  .home-status-grid,
+  .snapshot-grid.compact,
+  .arena-stat-grid,
+  .validation-grid,
+  .detail-greek-grid,
+  .scenario-grid,
+  .outcome-grid,
+  .provider-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .topbar-badges {
+    gap: 6px;
+  }
+
+  .hero-actions,
+  .signal-tools {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .setup-row {
+    grid-template-columns: 28px 1fr;
+  }
+
+  .setup-row > span:last-child {
+    grid-column: 2;
   }
 }

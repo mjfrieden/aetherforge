@@ -6,18 +6,56 @@
     <title>Register | Cumulonimbus</title>
     <script type="module" crossorigin src="/assets/api-2BZ-9_vN.js"></script>
     <script type="module" crossorigin src="/assets/auth-page-8Gs0wGNT.js"></script>
-    <link rel="stylesheet" crossorigin href="/assets/styles-BuREHFlk.css">
+    <link rel="stylesheet" crossorigin href="/assets/styles-BppKQdsY.css">
   </head>
   <body class="auth-body">
     <main class="auth-shell">
       <section class="auth-art auth-art-register" aria-label="Cumulonimbus registration art">
-        <p class="eyebrow">Cumulonimbus</p>
-        <h1>Build Your First Replay Model</h1>
-        <p>Start with paper capital, train on resolved outcomes, and compete without risking live funds.</p>
+        <a class="auth-brand" href="/">
+          <span class="auth-brand-mark" aria-hidden="true">
+            <svg viewBox="0 0 72 72" role="img">
+              <defs>
+                <linearGradient id="authRegisterJaySky" x1="8" y1="10" x2="62" y2="62" gradientUnits="userSpaceOnUse">
+                  <stop offset="0" stop-color="#38bdf8"></stop>
+                  <stop offset="0.48" stop-color="#4f46e5"></stop>
+                  <stop offset="1" stop-color="#111827"></stop>
+                </linearGradient>
+              </defs>
+              <path class="mark-cloud" d="M18.2 48.8h33.9c7.5 0 12.9-4.5 12.9-11.3 0-6.3-4.9-10.7-11.1-10.8C51.9 17.6 44.4 11 35 11c-8.6 0-15.5 5.4-18.1 13.1C10.4 25.2 6 30.1 6 36.4c0 7.3 5.5 12.4 12.2 12.4Z"></path>
+              <path class="mark-wing" d="M19.8 42.8c12.8-1.6 23.7-8 33-19.2-2.1 13.2-9.2 23.4-21.5 30.7-3.6-4.4-7.5-8.2-11.5-11.5Z" fill="url(#authRegisterJaySky)"></path>
+              <path class="mark-head" d="M43.2 19.5c4.1-3.9 8.5-5.3 13.1-4.1-2.3 1.8-3.9 4-4.9 6.7-2.9-.4-5.6-.2-8.2.6v-3.2Z"></path>
+              <circle class="mark-eye" cx="51.3" cy="19.8" r="1.4"></circle>
+              <path class="mark-beak" d="M56.2 20.4 66 18.2l-8.2 5.5-1.6-3.3Z"></path>
+            </svg>
+          </span>
+          <span class="brand-copy">
+            <strong>Cumulonimbus</strong>
+            <small>Model Forge</small>
+          </span>
+        </a>
+        <p class="eyebrow">Get started</p>
+        <h1>Build your first model with a calmer workspace</h1>
+        <p>Start with demo history, review one idea at a time, and learn how the model improves without getting overwhelmed.</p>
+        <div class="auth-chip-row">
+          <span>Demo history</span>
+          <span>Simple ideas</span>
+          <span>Saved versions</span>
+        </div>
+        <div class="auth-note-list">
+          <div>
+            <strong>Start simple</strong>
+            <small>You already get seeded model history so the app is useful on day one.</small>
+          </div>
+          <div>
+            <strong>Practice safely</strong>
+            <small>Paper trades and feature notes help you learn before going live.</small>
+          </div>
+        </div>
       </section>
       <section class="auth-panel" aria-label="Registration form">
         <p class="eyebrow">Register</p>
-        <h2>New Trader</h2>
+        <h2>Create account</h2>
+        <p class="auth-panel-copy">Make your account and we will load your starter model history.</p>
         <form id="auth-form" data-mode="register" autocomplete="on">
           <label>
             Display name
@@ -31,10 +69,10 @@
             Password
             <input id="password" name="password" type="password" autocomplete="new-password" required>
           </label>
-          <button type="submit">Create Account</button>
+          <button type="submit">Create My Account</button>
         </form>
         <p class="status" id="auth-status"></p>
-        <p class="auth-switch">Already have a desk? <a href="/login">Login</a></p>
+        <p class="auth-switch">Already have an account? <a href="/login">Sign in</a></p>
       </section>
     </main>
   </body>

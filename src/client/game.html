@@ -32,9 +32,9 @@
           </span>
         </a>
         <nav class="rail-nav" aria-label="Workspace">
-          <button class="active" type="button" data-view="desk">My Model</button>
-          <button type="button" data-view="vault">Predictions</button>
-          <button type="button" data-view="lab">Workshop</button>
+          <button class="active" type="button" data-view="desk">Home</button>
+          <button type="button" data-view="vault">Ideas</button>
+          <button type="button" data-view="lab">Improve</button>
           <button type="button" data-view="league">Community</button>
         </nav>
         <div class="rail-footer">
@@ -47,8 +47,8 @@
         <header class="oracle-topbar">
           <div>
             <p class="eyebrow" id="topbar-eyebrow">My evolving options model</p>
-            <h1 id="topbar-title">My Model</h1>
-            <p class="topbar-note" id="topbar-note">One model, one feedback loop. Capture outcomes, improve the feature set, and let every retrain earn its place.</p>
+            <h1 id="topbar-title">Home</h1>
+            <p class="topbar-note" id="topbar-note">A simple place to review ideas, practice, and improve your model over time.</p>
             <div class="topbar-badges" id="topbar-badges"></div>
           </div>
           <div class="account-strip" aria-label="Account summary">
@@ -74,9 +74,11 @@
         </header>
 
         <section class="view-panel active" id="view-desk" data-view-panel="desk">
-          <section class="trade-command" aria-label="Trading command center">
-            <div class="command-symbol">
-              <p class="eyebrow">Model Prompt</p>
+          <section class="home-hero" aria-label="Simple trading home">
+            <div class="home-hero-copy">
+              <p class="eyebrow">Simple start</p>
+              <h2 id="decision-action">Your model, made simple</h2>
+              <p id="decision-copy">Pick a symbol. Review the best idea. Improve the model over time.</p>
               <div class="symbol-search">
                 <label>
                   Symbol
@@ -84,457 +86,376 @@
                 </label>
                 <button id="scan-symbol-btn" type="button">Scan</button>
               </div>
-            </div>
-            <div class="decision-console">
-              <div>
-                <p class="eyebrow">Model Pulse</p>
-                <h2 id="decision-action">Awaiting Model Run</h2>
-                <p id="decision-copy">Scan a symbol, capture the label later, and keep refining the one model that owns your prediction loop.</p>
+              <div class="hero-actions">
+                <button id="refresh-market-btn" type="button">Refresh Ideas</button>
+                <button type="button" data-open-workshop>Improve Model</button>
               </div>
+            </div>
+            <div class="home-status">
               <span id="oracle-class">No scan</span>
-            </div>
-            <div class="mission-meters" aria-label="Session meters">
-              <div>
-                <dt>Style</dt>
-                <dd id="market-regime">Neutral</dd>
+              <div class="home-status-grid">
+                <div>
+                  <dt>Market</dt>
+                  <dd id="market-regime">Neutral</dd>
+                </div>
+                <div>
+                  <dt>Risk</dt>
+                  <dd id="risk-read">Guarded</dd>
+                </div>
+                <div>
+                  <dt>XP</dt>
+                  <dd id="xp-progress">0 / 140</dd>
+                </div>
               </div>
-              <div>
-                <dt>Risk</dt>
-                <dd id="risk-read">Guarded</dd>
-              </div>
-              <div>
-                <dt>XP</dt>
-                <dd id="xp-progress">0 / 140</dd>
-              </div>
+              <div class="snapshot-grid compact" id="snapshot-grid"></div>
             </div>
           </section>
 
-          <section class="mission-brief" aria-label="Ranked setup board">
-            <section class="setup-panel">
+          <section class="home-grid" aria-label="Home overview">
+            <section class="home-card home-card-main">
               <div class="section-heading">
                 <div>
-                  <p class="eyebrow">Prediction Queue</p>
-                  <h2>What My Model Likes</h2>
+                  <p class="eyebrow">Top ideas</p>
+                  <h2>What To Look At</h2>
                 </div>
-                <button type="button" data-open-workshop>Open Workshop</button>
+                <button type="button" data-open-workshop>How to improve</button>
               </div>
               <div class="setup-list" id="setup-list"></div>
             </section>
 
-            <section class="objective-panel">
+            <section class="home-card">
               <div class="section-heading">
                 <div>
-                  <p class="eyebrow">Improve Loop</p>
-                  <h2>How To Improve It</h2>
-                </div>
-              </div>
-              <div class="objective-list" id="objective-list"></div>
-            </section>
-          </section>
-
-          <section class="context-strip" aria-label="Replay context">
-            <section class="snapshot-panel">
-              <div class="section-heading">
-                <div>
-                  <p class="eyebrow">Model State</p>
-                  <h2>What Changed Recently</h2>
-                </div>
-              </div>
-              <div class="snapshot-grid" id="snapshot-grid"></div>
-            </section>
-            <section class="event-panel">
-              <div class="section-heading">
-                <div>
-                  <p class="eyebrow">Model Journal</p>
-                  <h2>Recent Notes And Labels</h2>
-                </div>
-              </div>
-              <div class="event-list" id="event-list"></div>
-            </section>
-          </section>
-
-          <div class="desk-grid">
-            <section class="market-column" aria-label="Market radar">
-              <div class="section-heading">
-                <div>
-                  <p class="eyebrow">Prediction Radar</p>
-                  <h2>Live Candidates</h2>
-                </div>
-                <button id="refresh-market-btn" type="button" title="Refresh symbols" aria-label="Refresh symbols">↻</button>
-              </div>
-              <div class="watchlist" id="watchlist"></div>
-              <div class="radar-tiles" aria-label="Underlying conditions">
-                <div>
-                  <dt>Price</dt>
-                  <dd id="underlying-price">$512.00</dd>
-                </div>
-                <div>
-                  <dt>Move</dt>
-                  <dd id="expected-move">+0.0%</dd>
-                </div>
-              </div>
-              <div class="coach-note" id="coach-note">
-                Improve the model with real outcomes, not hunches. Better labels and better features matter more than more chrome.
-              </div>
-            </section>
-
-            <section class="primary-desk" aria-label="Portfolio and option chain">
-              <div class="desk-chart-head">
-                <div>
-                  <p class="eyebrow">Model Equity</p>
-                  <h2 id="portfolio-title">Paper Curve</h2>
-                </div>
-                <div class="mode-toggle" role="group" aria-label="Trading mode">
-                  <button class="active" type="button" data-paper-mode="paper">Paper</button>
-                  <button type="button" data-paper-mode="shadow">Shadow</button>
-                </div>
-              </div>
-              <div class="equity-chart" id="equity-chart" aria-label="Equity curve"></div>
-              <div class="chain-head">
-                <div>
-                  <p class="eyebrow">Prediction Board</p>
-                  <h2 id="chain-title">SPY Ideas</h2>
-                </div>
-                <span id="data-freshness">Replay feed not loaded</span>
-              </div>
-              <div class="option-chain" id="option-chain"></div>
-            </section>
-
-            <section class="model-column" aria-label="Active model">
-              <div class="section-heading">
-                <div>
-                  <p class="eyebrow">My Model</p>
+                  <p class="eyebrow">My model</p>
                   <h2 id="model-name">Cumulonimbus Replay Model</h2>
                 </div>
-                <button type="button" data-open-workshop>Workshop</button>
               </div>
               <div class="model-score">
                 <span id="model-accuracy">Untrained</span>
                 <small id="model-brier">Collect resolved replay outcomes</small>
               </div>
-              <div class="risk-checklist" aria-label="Trade guardrails">
-                <div><span></span><strong>Feature discipline</strong><small>Add inputs because they help, not because they sound clever.</small></div>
-                <div><span></span><strong>Calibration first</strong><small>A high-confidence model should earn that confidence over time.</small></div>
-                <div><span></span><strong>No-trade counts</strong><small>Abstaining is part of the model, not an admission of defeat.</small></div>
-              </div>
               <div class="importance-list" id="importance-list"></div>
-              <div class="signal-tools">
-                <button id="paper-drill-btn" type="button">Refresh Candidate Set</button>
-                <button id="record-call-btn" type="button">Capture Labeled Scan</button>
-                <button id="record-put-btn" type="button">Capture Shadow Label</button>
+              <div class="coach-note" id="coach-note">
+                Start simple. Good labels and a few helpful features beat a complicated model.
               </div>
-              <p class="status" id="forecast-status">Every scan creates a timestamped prediction. Later snapshots tell you whether the model deserved trust.</p>
+              <p class="status" id="forecast-status">Your model learns over time as more outcomes are graded.</p>
             </section>
-          </div>
+          </section>
 
-          <section class="desk-bottom" aria-label="Inference and trade journal">
-            <div>
+          <section class="home-secondary-grid" aria-label="Helpful details">
+            <section class="home-card">
               <div class="section-heading">
                 <div>
-                  <p class="eyebrow">Decision Trace</p>
-                  <h2>Why My Model Leaned</h2>
+                  <p class="eyebrow">Watchlist</p>
+                  <h2>Simple market list</h2>
+                </div>
+                <button id="paper-drill-btn" type="button">Refresh</button>
+              </div>
+              <div class="watchlist" id="watchlist"></div>
+            </section>
+
+            <section class="home-card">
+              <div class="section-heading">
+                <div>
+                  <p class="eyebrow">Next steps</p>
+                  <h2>What to do now</h2>
                 </div>
               </div>
-              <div class="inference-strip" id="inference-strip"></div>
-            </div>
-            <div>
+              <div class="objective-list" id="objective-list"></div>
+            </section>
+
+            <section class="home-card">
               <div class="section-heading">
                 <div>
-                  <p class="eyebrow">Trade Journal</p>
-                  <h2>Recent Trades And Outcomes</h2>
+                  <p class="eyebrow">Recent activity</p>
+                  <h2>Trades and notes</h2>
                 </div>
                 <span id="trade-count">0 trades</span>
               </div>
               <div class="trade-journal" id="trade-journal"></div>
-            </div>
-          </section>
-        </section>
-
-        <section class="view-panel" id="view-lab" data-view-panel="lab">
-          <section class="lab-brief">
-            <section class="lab-summary-panel">
-              <div class="section-heading">
-                <div>
-                  <p class="eyebrow">Feature Workshop</p>
-                  <h2>One Model, Better Inputs</h2>
-                </div>
-                <span id="data-readiness">Research mode</span>
+              <div class="event-list" id="event-list"></div>
+              <div class="signal-tools">
+                <button id="record-call-btn" type="button">Capture Labeled Scan</button>
+                <button id="record-put-btn" type="button">Capture Shadow Label</button>
               </div>
-              <div class="lab-summary-grid" id="lab-summary-grid"></div>
-            </section>
-            <section class="lab-version-panel">
-              <p class="eyebrow">Model Timeline</p>
-              <h2>Persisted Versions</h2>
-              <div class="version-list" id="model-version-list"></div>
-            </section>
-            <section class="lab-notebook-panel">
-              <p class="eyebrow">Version Plan</p>
-              <h2>Next Improvement</h2>
-              <div class="lab-note-list" id="lab-note-list"></div>
             </section>
           </section>
-
-          <div class="lab-layout">
-            <section class="lab-palette" aria-label="Model components">
-              <p class="eyebrow">Feature Workshop</p>
-              <h2>Shape The Feature Set</h2>
-              <div class="lab-group">
-                <h3>Core Engine</h3>
-                <div class="choice-list" id="architecture-list"></div>
-              </div>
-              <div class="lab-group">
-                <h3>Default Features</h3>
-                <div class="choice-list" id="feature-list"></div>
-              </div>
-              <div class="lab-group">
-                <h3>Training Rule</h3>
-                <div class="choice-list" id="optimizer-list"></div>
-              </div>
-            </section>
-
-            <section class="pipeline-stage" aria-label="Model pipeline">
-              <div class="pipeline-canvas">
-                <div class="pipeline-node input" id="pipeline-inputs">No inputs connected</div>
-                <div class="pipeline-line"></div>
-                <div class="pipeline-node core">
-                  <span>Active Model Core</span>
-                  <strong id="pipeline-core">Random Forest</strong>
-                  <small id="pipeline-type">Ensemble</small>
-                </div>
-                <div class="pipeline-line"></div>
-                <div class="pipeline-row">
-                  <span id="pipeline-optimizer">AdamW</span>
-                  <span>MSE Loss</span>
-                </div>
-              </div>
-              <div class="pipeline-metrics">
-                <div><dt>Complexity</dt><dd id="pipeline-complexity">1.2M params</dd></div>
-                <div><dt>Training rows</dt><dd id="training-row-count">0</dd></div>
-                <div><dt>XP reward</dt><dd id="training-xp">+20 XP</dd></div>
-              </div>
-            </section>
-
-            <section class="training-console" aria-label="Training console">
-              <div class="section-heading">
-                <div>
-                  <p class="eyebrow">Training</p>
-                  <h2>Retrain Loop</h2>
-                </div>
-              </div>
-              <div class="console-log" id="console-log"></div>
-              <button id="train-model-btn" type="button">Retrain My Model</button>
-              <p class="status" id="model-status">Choose features, wait for resolved outcomes, then retrain the one model you are trying to improve.</p>
-            </section>
-          </div>
-
-          <section class="research-grid" aria-label="Finance machine learning research lab">
-            <section class="data-studio" aria-label="Real-world data curation">
-              <div class="section-heading">
-                <div>
-                  <p class="eyebrow">Open Source Inputs</p>
-                  <h2>Import Feature Packs</h2>
-                </div>
-                <span id="lab-feed-mode">Point-in-time only</span>
-              </div>
-              <div class="provider-grid" id="provider-grid"></div>
-              <div class="google-finance-note">
-                <strong>Open feature manifest path</strong>
-                <span>Ship default features in the product, then let users import community manifests or author their own formulas. Google Sheets `GOOGLEFINANCE` can still support learning exports, but production scans should use licensed APIs.</span>
-              </div>
-            </section>
-
-            <section class="context-window-lab" aria-label="Model context window">
-              <div class="section-heading">
-                <div>
-                  <p class="eyebrow">Feature Flow</p>
-                  <h2>From Inputs To Prediction</h2>
-                </div>
-                <span id="context-budget">0 / 8 signals</span>
-              </div>
-              <div class="context-map" id="context-map"></div>
-            </section>
-
-            <section class="validation-lab" aria-label="Validation and leakage checks">
-              <div class="section-heading">
-                <div>
-                  <p class="eyebrow">Training Bench</p>
-                  <h2>Model Scoreboard</h2>
-                </div>
-                <span id="leakage-badge">Leakage guard</span>
-              </div>
-              <div class="validation-grid" id="validation-grid"></div>
-              <div class="label-lab" id="label-lab"></div>
-            </section>
-
-            <section class="validation-lab" aria-label="Event overlays">
-              <div class="section-heading">
-                <div>
-                  <p class="eyebrow">Feature Journal</p>
-                  <h2>Log The Next Feature Idea</h2>
-                </div>
-                <span>Versioned notes</span>
-              </div>
-              <form id="event-form" class="event-form">
-                <label>
-                  Title
-                  <input id="event-title" maxlength="120" placeholder="Vol squeeze, skew regime, event flag">
-                </label>
-                <label>
-                  Source
-                  <input id="event-source" maxlength="80" placeholder="Notebook, community pack, experiment">
-                </label>
-                <label>
-                  Why add it
-                  <textarea id="event-body" rows="4" maxlength="1200" placeholder="Describe the feature or context and why it should improve the model."></textarea>
-                </label>
-                <button type="submit">Save Feature Note</button>
-              </form>
-              <p class="status" id="event-status">Use this journal for versioned feature ideas, context notes, and future imports.</p>
-            </section>
-          </section>
-        </section>
-
-        <section class="view-panel" id="view-league" data-view-panel="league">
-          <div class="arena-layout">
-            <section class="arena-summary-panel">
-              <p class="eyebrow">Open Community</p>
-              <h2>Share, Fork, Learn</h2>
-              <div class="arena-stat-grid" id="arena-stat-grid"></div>
-            </section>
-            <section>
-              <p class="eyebrow">Public Models</p>
-              <h2>Benchmark Board</h2>
-              <div class="league-board" id="leaderboard"></div>
-            </section>
-            <section class="challenge-panel">
-              <p class="eyebrow">Build Prompts</p>
-              <h2>Feature Quests</h2>
-              <div class="challenge-list" id="challenge-list"></div>
-            </section>
-            <section class="replay-panel">
-              <p class="eyebrow">Open Packs</p>
-              <h2>Importable Ideas</h2>
-              <div class="replay-list" id="replay-list"></div>
-            </section>
-          </div>
         </section>
 
         <section class="view-panel" id="view-vault" data-view-panel="vault">
-          <div class="detail-layout">
-            <section class="detail-stage">
+          <div class="predictions-layout">
+            <section class="home-card prediction-main">
               <div class="section-heading">
                 <div>
-                  <p class="eyebrow">Predictions</p>
-                  <h2>Selected Trade Idea</h2>
+                  <p class="eyebrow">Ideas</p>
+                  <h2>Selected trade idea</h2>
                 </div>
                 <span id="detail-focus-badge">Awaiting selection</span>
               </div>
               <div class="selected-contract-card" id="selected-contract-card"></div>
               <div class="detail-greek-grid" id="detail-greek-grid"></div>
               <div class="scenario-grid" id="scenario-grid"></div>
-              <section class="outcome-panel">
+              <div class="outcome-grid" id="outcome-grid"></div>
+            </section>
+
+            <section class="prediction-side">
+              <section class="home-card">
                 <div class="section-heading">
                   <div>
-                    <p class="eyebrow">Resolution Loop</p>
-                    <h2>Latest Outcome Signal</h2>
-                  </div>
-                </div>
-                <div class="outcome-grid" id="outcome-grid"></div>
-              </section>
-              <section class="comparison-panel">
-                <div class="section-heading">
-                  <div>
-                    <p class="eyebrow">Alternative Contracts</p>
-                    <h2>Compare Expressions</h2>
+                    <p class="eyebrow">Other choices</p>
+                    <h2>Compare contracts</h2>
                   </div>
                 </div>
                 <div class="comparison-list" id="comparison-list"></div>
               </section>
-            </section>
 
-            <section class="order-panel">
-              <div class="section-heading">
-                <div>
-                  <p class="eyebrow">Execution</p>
-                  <h2>Paper Or Pass</h2>
+              <section class="home-card">
+                <div class="section-heading">
+                  <div>
+                    <p class="eyebrow">Paper trade</p>
+                    <h2>Practice first</h2>
+                  </div>
+                  <span id="order-risk-badge">Select before execution</span>
                 </div>
-                <span id="order-risk-badge">Select before execution</span>
-              </div>
-              <button id="paper-trade-btn" type="button">Open Paper Position</button>
-              <p class="status" id="paper-trade-status">Choose a contract from Mission Control or this detail screen.</p>
-              <form id="order-form">
+                <button id="paper-trade-btn" type="button">Open Paper Position</button>
+                <p class="status" id="paper-trade-status">Choose a contract from Home or this Ideas screen.</p>
                 <input id="order-asset" type="hidden" value="option">
                 <input id="order-side" type="hidden" value="buy_to_open">
-                <div class="form-row">
-                  <label>
-                    Underlying
-                    <input id="order-symbol" value="SPY" maxlength="24">
-                  </label>
-                  <label>
-                    Contracts
-                    <input id="order-quantity" type="number" min="1" max="10" value="1">
-                  </label>
+                <input id="order-symbol" type="hidden" value="SPY">
+                <input id="order-quantity" type="hidden" value="1">
+                <input id="order-option-symbol" type="hidden">
+                <select id="order-type" class="hidden">
+                  <option value="limit">Limit</option>
+                </select>
+                <input id="order-price" type="hidden" value="1.00">
+                <input id="order-confirm" type="hidden">
+                <form id="order-form" class="hidden"></form>
+                <button id="place-order-btn" class="hidden" type="button">Place Gated Broker Order</button>
+                <p class="status hidden" id="order-status">No broker preview yet.</p>
+              </section>
+
+              <section class="home-card">
+                <div class="section-heading">
+                  <div>
+                    <p class="eyebrow">Live data</p>
+                    <h2>Connect your broker</h2>
+                  </div>
+                  <span class="mode-badge" id="broker-mode">Disconnected</span>
                 </div>
-                <label>
-                  OCC option symbol
-                  <input id="order-option-symbol" maxlength="24" placeholder="SPY260515C00500000">
-                </label>
-                <div class="form-row">
+                <form id="tradier-form">
                   <label>
-                    Type
-                    <select id="order-type">
-                      <option value="limit">Limit</option>
-                      <option value="market">Market preview</option>
+                    Access token
+                    <input id="tradier-token" type="password" autocomplete="off" placeholder="Stored encrypted server-side">
+                  </label>
+                  <label>
+                    Account ID
+                    <input id="tradier-account" autocomplete="off">
+                  </label>
+                  <label>
+                    Mode
+                    <select id="tradier-mode">
+                      <option value="sandbox">Sandbox</option>
+                      <option value="live">Live</option>
                     </select>
                   </label>
-                  <label>
-                    Limit debit
-                    <input id="order-price" type="number" min="0.01" step="0.01" value="1.00">
-                  </label>
-                </div>
-                <button type="submit">Preview Broker Ticket</button>
-                <label>
-                  Confirmation phrase
-                  <input id="order-confirm" autocomplete="off" placeholder="PLACE PAPER ORDER">
-                </label>
-                <button id="place-order-btn" type="button">Place Gated Broker Order</button>
-              </form>
-              <p class="status" id="order-status">No broker preview yet.</p>
+                  <button type="submit">Save Broker Link</button>
+                </form>
+                <p class="status" id="tradier-status">Connect Tradier when you want live replay snapshots.</p>
+              </section>
             </section>
+          </div>
+        </section>
 
-            <section class="broker-panel">
-              <div class="section-heading">
-                <div>
-                  <p class="eyebrow">Broker Connection</p>
-                  <h2>Execution Relay</h2>
-                </div>
-                <span class="mode-badge" id="broker-mode">Disconnected</span>
+        <section class="view-panel" id="view-lab" data-view-panel="lab">
+          <section class="home-card lab-header-card">
+            <div class="section-heading">
+              <div>
+                <p class="eyebrow">Improve</p>
+                <h2>Make the model better</h2>
               </div>
-              <form id="tradier-form">
-                <label>
-                  Access token
-                  <input id="tradier-token" type="password" autocomplete="off" placeholder="Stored encrypted server-side">
-                </label>
-                <label>
-                  Account ID
-                  <input id="tradier-account" autocomplete="off">
-                </label>
-                <label>
-                  Mode
-                  <select id="tradier-mode">
-                    <option value="sandbox">Sandbox</option>
-                    <option value="live">Live</option>
-                  </select>
-                </label>
-                <button type="submit">Save Broker Link</button>
-              </form>
-              <p class="status" id="tradier-status">Sandbox first. Live placement remains deployment-gated.</p>
+              <span id="data-readiness">Research mode</span>
+            </div>
+            <div class="lab-summary-grid" id="lab-summary-grid"></div>
+          </section>
+
+          <div class="lab-tabs" role="tablist" aria-label="Improve tabs">
+            <button class="active" type="button" data-lab-tab="overview">Overview</button>
+            <button type="button" data-lab-tab="features">Features</button>
+            <button type="button" data-lab-tab="imports">Imports</button>
+            <button type="button" data-lab-tab="score">Score</button>
+          </div>
+
+          <section class="lab-pane active" data-lab-pane="overview">
+            <div class="lab-simple-grid">
+              <section class="home-card">
+                <p class="eyebrow">Versions</p>
+                <h2>Saved model history</h2>
+                <div class="version-list" id="model-version-list"></div>
+              </section>
+              <section class="home-card">
+                <p class="eyebrow">Next improvement</p>
+                <h2>Keep it simple</h2>
+                <div class="lab-note-list" id="lab-note-list"></div>
+              </section>
+            </div>
+          </section>
+
+          <section class="lab-pane" data-lab-pane="features">
+            <div class="lab-simple-grid">
+              <section class="home-card">
+                <p class="eyebrow">Feature choices</p>
+                <h2>Pick what the model sees</h2>
+                <div class="lab-group">
+                  <h3>Core engine</h3>
+                  <div class="choice-list" id="architecture-list"></div>
+                </div>
+                <div class="lab-group">
+                  <h3>Default features</h3>
+                  <div class="choice-list" id="feature-list"></div>
+                </div>
+                <div class="lab-group">
+                  <h3>Training rule</h3>
+                  <div class="choice-list" id="optimizer-list"></div>
+                </div>
+              </section>
+
+              <section class="home-card">
+                <p class="eyebrow">Current setup</p>
+                <h2>What the model uses now</h2>
+                <div class="pipeline-canvas">
+                  <div class="pipeline-node input" id="pipeline-inputs">No inputs connected</div>
+                  <div class="pipeline-line"></div>
+                  <div class="pipeline-node core">
+                    <span>Active Model Core</span>
+                    <strong id="pipeline-core">Random Forest</strong>
+                    <small id="pipeline-type">Ensemble</small>
+                  </div>
+                  <div class="pipeline-line"></div>
+                  <div class="pipeline-row">
+                    <span id="pipeline-optimizer">AdamW</span>
+                    <span>Training rule</span>
+                  </div>
+                </div>
+                <div class="pipeline-metrics">
+                  <div><dt>Complexity</dt><dd id="pipeline-complexity">1.2M params</dd></div>
+                  <div><dt>Training rows</dt><dd id="training-row-count">0</dd></div>
+                  <div><dt>XP reward</dt><dd id="training-xp">+20 XP</dd></div>
+                </div>
+              </section>
+
+              <section class="home-card">
+                <p class="eyebrow">Retrain</p>
+                <h2>Save a new version</h2>
+                <div class="console-log" id="console-log"></div>
+                <button id="train-model-btn" type="button">Retrain My Model</button>
+                <p class="status" id="model-status">Choose features, wait for resolved outcomes, then retrain the one model you are trying to improve.</p>
+              </section>
+            </div>
+          </section>
+
+          <section class="lab-pane" data-lab-pane="imports">
+            <div class="lab-simple-grid">
+              <section class="home-card">
+                <div class="section-heading">
+                  <div>
+                    <p class="eyebrow">Imports</p>
+                    <h2>Feature packs</h2>
+                  </div>
+                  <span id="lab-feed-mode">Point-in-time only</span>
+                </div>
+                <div class="provider-grid" id="provider-grid"></div>
+                <div class="google-finance-note">
+                  <strong>Start with defaults</strong>
+                  <span>Only add a new pack if you can explain why it should help the model make better decisions.</span>
+                </div>
+              </section>
+
+              <section class="home-card">
+                <div class="section-heading">
+                  <div>
+                    <p class="eyebrow">Feature notes</p>
+                    <h2>Write down the idea</h2>
+                  </div>
+                </div>
+                <form id="event-form" class="event-form">
+                  <label>
+                    Title
+                    <input id="event-title" maxlength="120" placeholder="Short name">
+                  </label>
+                  <label>
+                    Source
+                    <input id="event-source" maxlength="80" placeholder="Where it came from">
+                  </label>
+                  <label>
+                    Why it may help
+                    <textarea id="event-body" rows="4" maxlength="1200" placeholder="Plain English note about why this feature might improve the model."></textarea>
+                  </label>
+                  <button type="submit">Save Note</button>
+                </form>
+                <p class="status" id="event-status">Keep notes short and practical.</p>
+              </section>
+            </div>
+          </section>
+
+          <section class="lab-pane" data-lab-pane="score">
+            <div class="lab-simple-grid">
+              <section class="home-card">
+                <div class="section-heading">
+                  <div>
+                    <p class="eyebrow">Score</p>
+                    <h2>How the model is doing</h2>
+                  </div>
+                  <span id="leakage-badge">Leakage guard</span>
+                </div>
+                <div class="validation-grid" id="validation-grid"></div>
+              </section>
+
+              <section class="home-card">
+                <div class="section-heading">
+                  <div>
+                    <p class="eyebrow">Flow</p>
+                    <h2>How an idea becomes a score</h2>
+                  </div>
+                  <span id="context-budget">0 / 8 signals</span>
+                </div>
+                <div class="context-map" id="context-map"></div>
+              </section>
+
+              <section class="home-card">
+                <p class="eyebrow">Checklist</p>
+                <h2>Before you trust it</h2>
+                <div class="label-lab" id="label-lab"></div>
+              </section>
+            </div>
+          </section>
+        </section>
+
+        <section class="view-panel" id="view-league" data-view-panel="league">
+          <div class="community-grid">
+            <section class="home-card">
+              <p class="eyebrow">Community</p>
+              <h2>Learn from other people</h2>
+              <div class="arena-stat-grid" id="arena-stat-grid"></div>
+            </section>
+            <section class="home-card">
+              <p class="eyebrow">Public models</p>
+              <h2>Simple benchmark list</h2>
+              <div class="league-board" id="leaderboard"></div>
+            </section>
+            <section class="home-card">
+              <p class="eyebrow">Practice</p>
+              <h2>Small improvement ideas</h2>
+              <div class="challenge-list" id="challenge-list"></div>
+            </section>
+            <section class="home-card">
+              <p class="eyebrow">Open packs</p>
+              <h2>Things you can import</h2>
+              <div class="replay-list" id="replay-list"></div>
             </section>
           </div>
         </section>
       </section>
     </main>
-    <p class="legal">Educational simulation. Not investment advice. Replay outcomes are research feedback, not a promise of live market performance.</p>
     <script type="module" src="/src/game/main.ts"></script>
   </body>
 </html>
