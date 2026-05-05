@@ -2,6 +2,7 @@ import { audit, getUserByEmail, rateLimit, requireDb } from "../../_lib/db.js";
 import { createSession, publicUser } from "../../_lib/auth.js";
 import { randomBase64Url } from "../../_lib/encoding.js";
 import { clientIpHashInput, json, normalizeEmail, nowIso, readJson } from "../../_lib/http.js";
+import { seedStarterModelHistory } from "../../_lib/model_forge.js";
 import {
   hashOpaqueValue,
   hashPassword,
@@ -52,6 +53,14 @@ export async function onRequestPost(context) {
     )
     .bind(userId, email, displayName, salt, passwordRecord.hash, passwordRecord.iterations, createdAt)
     .run();
+
+  try {
+    await seedStarterModelHistory(context.env, userId, displayName);
+  } catch (error) {
+    await audit(context.env, userId, "model.seeded_demo_history_failed", {
+      error: error instanceof Error ? error.message : String(error),
+    });
+  }
 
   await audit(context.env, userId, "auth.register", {});
   const session = await createSession(context, userId);

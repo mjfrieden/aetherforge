@@ -9,8 +9,8 @@
     "build": "vite build",
     "dev:pages": "npm run build && wrangler pages dev public --port 8787",
     "test": "node --test",
-    "migrate:local": "wrangler d1 execute aetherforge-db --local --file migrations/0001_init.sql && wrangler d1 execute aetherforge-db --local --file migrations/0002_research.sql",
-    "migrate:remote": "wrangler d1 execute aetherforge-db --remote --file migrations/0001_init.sql && wrangler d1 execute aetherforge-db --remote --file migrations/0002_research.sql",
+    "migrate:local": "wrangler d1 execute aetherforge-db --local --file migrations/0001_init.sql && wrangler d1 execute aetherforge-db --local --file migrations/0002_research.sql && wrangler d1 execute aetherforge-db --local --file migrations/0003_model_forge.sql",
+    "migrate:remote": "wrangler d1 execute aetherforge-db --remote --file migrations/0001_init.sql && wrangler d1 execute aetherforge-db --remote --file migrations/0002_research.sql && wrangler d1 execute aetherforge-db --remote --file migrations/0003_model_forge.sql",
     "deploy": "npm run build && wrangler pages deploy public --project-name aetherforge"
   },
   "devDependencies": {

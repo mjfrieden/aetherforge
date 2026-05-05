@@ -2,6 +2,7 @@ import { randomBase64Url } from "./encoding.js";
 import { audit, requireDb } from "./db.js";
 import { nowIso } from "./http.js";
 import { cleanSymbol, tradierRequest } from "./tradier.js";
+import { listFeatureManifests, listModelVersions } from "./model_forge.js";
 import { parseStoredModel, predictWithWeights } from "./model.js";
 
 export const DEFAULT_WATCHLIST = ["SPY", "QQQ", "NVDA", "TSLA", "AAPL"];
@@ -706,7 +707,7 @@ export async function loadResearchDashboard(env, userId, { mode = "paper", symbo
       .prepare(
         `SELECT
             COUNT(*) AS decision_count,
-            AVG(score) AS avg_score,
+            AVG(ro.score) AS avg_score,
             AVG(CASE WHEN outcome_label = 'no_trade_win' THEN 1 ELSE 0 END) AS no_trade_win_rate,
             AVG(CASE WHEN rd.mode = 'shadow' THEN ro.score END) AS shadow_score
          FROM research_outcomes ro
@@ -717,6 +718,10 @@ export async function loadResearchDashboard(env, userId, { mode = "paper", symbo
       .first();
 
   const latestModel = await loadLatestModel(env, userId);
+  const [modelVersions, featureManifests] = await Promise.all([
+    listModelVersions(env, userId, 8),
+    listFeatureManifests(env, userId),
+  ]);
   const setups = [];
   for (const row of watchlist) {
     const watchSnapshot = await db.prepare("SELECT * FROM research_snapshots WHERE id = ?").bind(row.snapshotId).first();
@@ -818,6 +823,8 @@ export async function loadResearchDashboard(env, userId, { mode = "paper", symbo
       equityHistory: equityHistoryFromTrades(initialBalance, trades),
     },
     model: latestModel,
+    modelVersions,
+    featureManifests,
   };
 }
 

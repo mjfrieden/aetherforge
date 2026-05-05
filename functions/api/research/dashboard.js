@@ -7,6 +7,7 @@ import {
   loadInitialBalance,
   loadResearchDashboard,
 } from "../../_lib/research.js";
+import { ensureSystemFeatureManifests, seedStarterModelHistory } from "../../_lib/model_forge.js";
 import { loadTradierAccount } from "../../_lib/tradier.js";
 
 export async function onRequestGet(context) {
@@ -26,7 +27,11 @@ export async function onRequestGet(context) {
   const selectedSymbol = requestUrl.searchParams.get("symbol") || symbols[0];
   const initialBalance = await loadInitialBalance(context.env, auth.session.user.id);
 
+  await ensureSystemFeatureManifests(context.env);
   const account = await loadTradierAccount(context.env, auth.session.user.id);
+  const seededDemo = !account
+    ? await seedStarterModelHistory(context.env, auth.session.user.id, auth.session.user.display_name || "Trader")
+    : false;
   if (account) {
     for (const symbol of symbols) {
       try {
@@ -56,6 +61,11 @@ export async function onRequestGet(context) {
   return json({
     ok: true,
     connected: Boolean(account),
+    message: account
+      ? undefined
+      : seededDemo
+        ? "Demo model history loaded. Connect Tradier whenever you want live replay snapshots."
+        : "Demo model history is available while you refine features and compare versions.",
     dashboard,
   });
 }

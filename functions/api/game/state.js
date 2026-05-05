@@ -5,6 +5,7 @@ import { requireSameOriginAndCsrf } from "../../_lib/security.js";
 
 function sanitizeGameState(value) {
   const state = value && typeof value === "object" ? value : {};
+  const allowedFeatures = ["change_pct", "intraday_range", "atm_iv", "liquidity", "call_put_skew"];
   const profession = state.profession && typeof state.profession === "object" ? state.profession : {};
   const forecast = profession.forecast && typeof profession.forecast === "object" ? profession.forecast : null;
   const forecastFeatures = forecast?.features && typeof forecast.features === "object" ? forecast.features : {};
@@ -47,11 +48,11 @@ function sanitizeGameState(value) {
             probability: Math.max(0, Math.min(1, Number(forecast.probability || 0))),
             class: String(forecast.class || "").slice(0, 32),
             features: {
-              momentum: Math.max(-1, Math.min(1, Number(forecastFeatures.momentum || 0))),
-              volatility: Math.max(-1, Math.min(1, Number(forecastFeatures.volatility || 0))),
-              sentiment: Math.max(-1, Math.min(1, Number(forecastFeatures.sentiment || 0))),
+              change_pct: Math.max(-1, Math.min(1, Number(forecastFeatures.change_pct || 0))),
+              intraday_range: Math.max(-1, Math.min(1, Number(forecastFeatures.intraday_range || 0))),
+              atm_iv: Math.max(-1, Math.min(1, Number(forecastFeatures.atm_iv || 0))),
               liquidity: Math.max(-1, Math.min(1, Number(forecastFeatures.liquidity || 0))),
-              iv_rank: Math.max(-1, Math.min(1, Number(forecastFeatures.iv_rank || 0))),
+              call_put_skew: Math.max(-1, Math.min(1, Number(forecastFeatures.call_put_skew || 0))),
             },
           }
         : null,
@@ -82,20 +83,27 @@ function sanitizeGameState(value) {
       pipeline:
         cockpit.pipeline && typeof cockpit.pipeline === "object"
           ? {
-              architecture: String(cockpit.pipeline.architecture || "Random Forest").slice(0, 48),
-              architectureType: String(cockpit.pipeline.architectureType || "Ensemble").slice(0, 48),
-              optimizer: String(cockpit.pipeline.optimizer || "AdamW").slice(0, 48),
+              architecture: String(cockpit.pipeline.architecture || "Replay Logistic").slice(0, 48),
+              architectureType: String(cockpit.pipeline.architectureType || "Walk-forward").slice(0, 48),
+              optimizer: String(cockpit.pipeline.optimizer || "Gradient Descent").slice(0, 48),
               features: Array.isArray(cockpit.pipeline.features)
                 ? cockpit.pipeline.features
-                    .filter((feature) => ["momentum", "volatility", "sentiment", "liquidity", "iv_rank"].includes(String(feature)))
+                    .filter((feature) => allowedFeatures.includes(String(feature)))
                     .slice(0, 5)
-                : ["momentum", "volatility", "liquidity"],
+                : ["change_pct", "intraday_range", "atm_iv", "liquidity"],
+              importedManifestIds: Array.isArray(cockpit.pipeline.importedManifestIds)
+                ? cockpit.pipeline.importedManifestIds
+                    .map((manifestId) => String(manifestId || "").slice(0, 48))
+                    .filter(Boolean)
+                    .slice(0, 12)
+                : [],
             }
           : {
-              architecture: "Random Forest",
-              architectureType: "Ensemble",
-              optimizer: "AdamW",
-              features: ["momentum", "volatility", "liquidity"],
+              architecture: "Replay Logistic",
+              architectureType: "Walk-forward",
+              optimizer: "Gradient Descent",
+              features: ["change_pct", "intraday_range", "atm_iv", "liquidity"],
+              importedManifestIds: [],
             },
     },
     essence: {
