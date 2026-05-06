@@ -12,6 +12,7 @@ Public GitHub repo: https://github.com/mjfrieden/aetherforge
 
 The lineage and earlier sibling-project evaluation live in [docs/project-evaluation.md](docs/project-evaluation.md). The user-facing product name is now simply Cumulonimbus.
 The concrete roadmap for outgrowing Orographic lives in [docs/beat-orographic-roadmap.md](docs/beat-orographic-roadmap.md).
+The production automation notes live in [docs/deploy-automation.md](docs/deploy-automation.md).
 
 ## Security Model
 
@@ -105,6 +106,8 @@ Deploy:
 ```bash
 npm run deploy
 ```
+
+GitHub-based production automation is documented in [docs/deploy-automation.md](docs/deploy-automation.md).
 
 ## Tradier
 
