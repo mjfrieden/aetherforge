@@ -4,9 +4,9 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Cumulonimbus</title>
-    <script type="module" crossorigin src="/assets/game-OLU0RaoH.js"></script>
+    <script type="module" crossorigin src="/assets/game-CSP8ZZvH.js"></script>
     <link rel="modulepreload" crossorigin href="/assets/api-2BZ-9_vN.js">
-    <link rel="stylesheet" crossorigin href="/assets/styles-BppKQdsY.css">
+    <link rel="stylesheet" crossorigin href="/assets/styles-DKteKdL7.css">
   </head>
   <body class="game-body">
     <main class="oracle-shell">
@@ -34,12 +34,29 @@
           </span>
         </a>
         <nav class="rail-nav" aria-label="Workspace">
-          <button class="active" type="button" data-view="desk">Home</button>
-          <button type="button" data-view="vault">Ideas</button>
-          <button type="button" data-view="lab">Improve</button>
+          <button class="active" type="button" data-view="desk">My Model</button>
+          <button type="button" data-view="vault">Predictions</button>
+          <button type="button" data-view="lab">Workshop</button>
           <button type="button" data-view="league">Community</button>
+          <button type="button" data-jump-view="desk" data-jump-target="recent-model-update">Journal</button>
+          <button type="button" data-jump-view="vault" data-jump-target="tradier-form">Settings</button>
         </nav>
         <div class="rail-footer">
+          <div class="rail-status-card">
+            <div class="rail-status-head">
+              <span class="live-dot" aria-hidden="true"></span>
+              <strong>Paper Trading</strong>
+              <em>On</em>
+            </div>
+            <div class="rail-balance-stack">
+              <span>Account Value</span>
+              <b id="equity-value">$10,000.00</b>
+            </div>
+            <div class="rail-day-stack">
+              <span>Today</span>
+              <b id="day-pnl-value">$0.00</b>
+            </div>
+          </div>
           <span id="session-chip">Loading</span>
           <button id="logout-btn" type="button">Logout</button>
         </div>
@@ -49,138 +66,127 @@
         <header class="oracle-topbar">
           <div>
             <p class="eyebrow" id="topbar-eyebrow">My evolving options model</p>
-            <h1 id="topbar-title">Home</h1>
+            <h1 id="topbar-title">My Model</h1>
             <p class="topbar-note" id="topbar-note">A simple place to review ideas, practice, and improve your model over time.</p>
-            <div class="topbar-badges" id="topbar-badges"></div>
           </div>
-          <div class="account-strip" aria-label="Account summary">
-            <dl>
-              <div>
-                <dt>Equity</dt>
-                <dd id="equity-value">$10,000.00</dd>
-              </div>
-              <div>
-                <dt>Day P&L</dt>
-                <dd id="day-pnl-value">$0.00</dd>
-              </div>
-              <div>
-                <dt>Level</dt>
-                <dd id="level-value">1</dd>
-              </div>
-              <div>
-                <dt>Rank</dt>
-                <dd id="rank-value">-</dd>
-              </div>
-            </dl>
+          <div class="workspace-controls" aria-label="Desk controls">
+            <div class="topbar-badges" id="topbar-badges"></div>
+            <label class="symbol-pill">
+              <span class="sr-only">Symbol</span>
+              <input id="symbol-input" value="SPY" maxlength="12" autocomplete="off" aria-label="Current symbol">
+            </label>
+            <button class="icon-button" id="scan-symbol-btn" type="button" aria-label="Refresh symbol">↻</button>
+            <button class="icon-button" type="button" aria-label="Notifications">◌</button>
+            <div class="avatar-chip" id="account-avatar">MF</div>
           </div>
         </header>
 
         <section class="view-panel active" id="view-desk" data-view-panel="desk">
-          <section class="home-hero" aria-label="Simple trading home">
-            <div class="home-hero-copy">
-              <p class="eyebrow">Simple start</p>
-              <h2 id="decision-action">Your model, made simple</h2>
-              <p id="decision-copy">Pick a symbol. Review the best idea. Improve the model over time.</p>
-              <div class="symbol-search">
-                <label>
-                  Symbol
-                  <input id="symbol-input" value="SPY" maxlength="12" autocomplete="off">
-                </label>
-                <button id="scan-symbol-btn" type="button">Scan</button>
-              </div>
-              <div class="hero-actions">
-                <button id="refresh-market-btn" type="button">Refresh Ideas</button>
-                <button type="button" data-open-workshop>Improve Model</button>
+          <section class="home-card model-overview-card" aria-label="Model health">
+            <div class="section-heading">
+              <div>
+                <p class="eyebrow">My Model</p>
+                <h2>Model Health</h2>
               </div>
             </div>
-            <div class="home-status">
-              <span id="oracle-class">No scan</span>
-              <div class="home-status-grid">
-                <div>
-                  <dt>Market</dt>
-                  <dd id="market-regime">Neutral</dd>
-                </div>
-                <div>
-                  <dt>Risk</dt>
-                  <dd id="risk-read">Guarded</dd>
-                </div>
-                <div>
-                  <dt>XP</dt>
-                  <dd id="xp-progress">0 / 140</dd>
+            <div class="model-health-layout">
+              <div class="health-accuracy">
+                <span id="model-accuracy">Untrained</span>
+                <small>Accuracy</small>
+                <p>vs. Hold Baseline</p>
+              </div>
+              <div class="health-chart-block">
+                <div class="equity-chart health-chart" id="equity-chart"></div>
+                <div class="health-axis">
+                  <span>Apr 5</span>
+                  <span>Apr 12</span>
+                  <span>Apr 19</span>
+                  <span>Apr 26</span>
+                  <span>May 3</span>
                 </div>
               </div>
-              <div class="snapshot-grid compact" id="snapshot-grid"></div>
+              <div class="health-side">
+                <div class="health-score-stack">
+                  <div>
+                    <dt>Brier Score</dt>
+                    <dd id="model-brier">Collect resolved outcomes</dd>
+                    <small>Lower is better</small>
+                  </div>
+                  <div>
+                    <dt>Total Trades</dt>
+                    <dd id="trade-count">0</dd>
+                    <small>Resolved outcomes</small>
+                  </div>
+                </div>
+                <div class="next-step-card">
+                  <p class="eyebrow">Next Best Step</p>
+                  <div class="coach-note" id="coach-note">
+                    Add one new feature only when you can explain why it should help.
+                  </div>
+                  <button type="button" data-open-workshop>Go to Workshop</button>
+                </div>
+              </div>
             </div>
           </section>
 
-          <section class="home-grid" aria-label="Home overview">
+          <section class="home-grid model-home-grid" aria-label="Home overview">
             <section class="home-card home-card-main">
               <div class="section-heading">
                 <div>
-                  <p class="eyebrow">Top ideas</p>
-                  <h2>What To Look At</h2>
+                  <p class="eyebrow">Top Predictions</p>
+                  <h2>Top Predictions</h2>
                 </div>
-                <button type="button" data-open-workshop>How to improve</button>
+                <button id="refresh-market-btn" type="button">Refresh</button>
               </div>
               <div class="setup-list" id="setup-list"></div>
             </section>
 
-            <section class="home-card">
+            <section class="home-card selected-trade-panel">
               <div class="section-heading">
                 <div>
-                  <p class="eyebrow">My model</p>
-                  <h2 id="model-name">Cumulonimbus Replay Model</h2>
+                  <p class="eyebrow">Selected Trade</p>
+                  <h2>Selected Trade</h2>
+                </div>
+                <span id="home-focus-badge">Awaiting selection</span>
+              </div>
+              <div class="selected-trade-summary" id="home-selected-card">
+                <div>
+                  <span class="trade-badge call" id="home-selected-badge">CALL</span>
+                  <h3 id="home-selected-symbol">SPY</h3>
+                  <p id="home-selected-company">Waiting for a saved idea.</p>
+                </div>
+                <div class="selected-trade-confidence">
+                  <b id="home-selected-confidence">--</b>
+                  <small>Confidence</small>
                 </div>
               </div>
-              <div class="model-score">
-                <span id="model-accuracy">Untrained</span>
-                <small id="model-brier">Collect resolved replay outcomes</small>
+              <div class="selected-trade-grid">
+                <div><dt>Strategy</dt><dd id="home-selected-strategy">--</dd></div>
+                <div><dt>Strike</dt><dd id="home-selected-strike">--</dd></div>
+                <div><dt>Expiry</dt><dd id="home-selected-expiry">--</dd></div>
+                <div><dt>Entry Price</dt><dd id="home-selected-entry">--</dd></div>
+                <div><dt>Current Price</dt><dd id="home-selected-current">--</dd></div>
+                <div><dt>Unrealized P&amp;L</dt><dd id="home-selected-pnl">--</dd></div>
               </div>
-              <div class="importance-list" id="importance-list"></div>
-              <div class="coach-note" id="coach-note">
-                Start simple. Good labels and a few helpful features beat a complicated model.
+              <div class="selected-trade-actions">
+                <button type="button" data-view="vault">View Details</button>
+                <button id="home-paper-trade-btn" type="button">Paper Trade</button>
               </div>
-              <p class="status" id="forecast-status">Your model learns over time as more outcomes are graded.</p>
+              <p class="status" id="home-paper-trade-status">Choose one prediction to inspect before you practice the trade.</p>
             </section>
           </section>
 
-          <section class="home-secondary-grid" aria-label="Helpful details">
-            <section class="home-card">
-              <div class="section-heading">
-                <div>
-                  <p class="eyebrow">Watchlist</p>
-                  <h2>Simple market list</h2>
-                </div>
-                <button id="paper-drill-btn" type="button">Refresh</button>
-              </div>
-              <div class="watchlist" id="watchlist"></div>
-            </section>
-
-            <section class="home-card">
-              <div class="section-heading">
-                <div>
-                  <p class="eyebrow">Next steps</p>
-                  <h2>What to do now</h2>
-                </div>
-              </div>
-              <div class="objective-list" id="objective-list"></div>
-            </section>
-
-            <section class="home-card">
-              <div class="section-heading">
-                <div>
-                  <p class="eyebrow">Recent activity</p>
-                  <h2>Trades and notes</h2>
-                </div>
-                <span id="trade-count">0 trades</span>
-              </div>
-              <div class="trade-journal" id="trade-journal"></div>
-              <div class="event-list" id="event-list"></div>
-              <div class="signal-tools">
-                <button id="record-call-btn" type="button">Capture Labeled Scan</button>
-                <button id="record-put-btn" type="button">Capture Shadow Label</button>
-              </div>
-            </section>
+          <section class="home-card recent-update-bar" id="recent-model-update" aria-label="Recent model updates">
+            <div class="recent-update-copy">
+              <strong>Recent Model Updates</strong>
+              <span id="recent-update-text">Version history will appear here as you retrain the model.</span>
+            </div>
+            <div class="review-list" id="review-list"></div>
+            <span class="recent-update-date" id="recent-update-date">--</span>
+            <div class="recent-update-actions">
+              <button id="backfill-history-btn" type="button">Load Demo History</button>
+              <button type="button" data-open-workshop>View all versions</button>
+            </div>
           </section>
         </section>
 

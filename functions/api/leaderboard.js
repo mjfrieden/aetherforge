@@ -13,6 +13,8 @@ export async function onRequestGet(context) {
        FROM users
        LEFT JOIN research_outcomes ro ON ro.user_id = users.id
        LEFT JOIN research_decisions rd ON rd.id = ro.decision_id
+       WHERE ro.workspace = 'live'
+         AND COALESCE(json_extract(rd.rationale_json, '$.auto_shadow_candidate'), 0) = 0
        GROUP BY users.id, users.display_name
        HAVING evaluated_decisions > 0
        ORDER BY avg_score DESC, evaluated_decisions DESC

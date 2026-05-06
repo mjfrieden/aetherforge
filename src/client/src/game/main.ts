@@ -34,6 +34,7 @@ type OptionContract = {
 
 type SnapshotRecord = {
   id: string;
+  workspace?: "demo" | "live";
   symbol: string;
   expiration: string;
   snapshotAt: string;
@@ -57,6 +58,7 @@ type SetupRecord = {
 
 type DecisionRecord = {
   id: string;
+  workspace?: "demo" | "live";
   snapshotId: string;
   mode: PaperMode;
   symbol: string;
@@ -64,7 +66,17 @@ type DecisionRecord = {
   probability: number;
   score: number;
   features: Record<FeatureKey, number>;
-  rationale: { engine?: string; noTradePressure?: number; selectedOptionSymbol?: string | null };
+  rationale: {
+    engine?: string;
+    summary?: string;
+    noTradePressure?: number;
+    margin?: number;
+    liquidityScore?: number;
+    ivPressure?: number;
+    drivers?: string[];
+    blockers?: string[];
+    selectedOptionSymbol?: string | null;
+  };
   selectedOptionSymbol: string | null;
 };
 
@@ -75,10 +87,33 @@ type OutcomeRecord = {
   callReturn: number | null;
   putReturn: number | null;
   underlyingReturn: number | null;
+  horizonMinutes: number;
+};
+
+type ReviewRecord = {
+  id: string;
+  workspace?: "demo" | "live";
+  mode: PaperMode;
+  symbol: string;
+  decision: DecisionType;
+  probability: number;
+  score: number;
+  selectedOptionSymbol: string | null;
+  rationale: DecisionRecord["rationale"];
+  outcomeLabel: string;
+  selectedReturn: number | null;
+  callReturn: number | null;
+  putReturn: number | null;
+  underlyingReturn: number | null;
+  horizonMinutes: number;
+  createdAt: string;
+  resolvedAt: string | null;
+  summary: string;
 };
 
 type TradeRecord = {
   id: string;
+  workspace?: "demo" | "live";
   decisionId: string | null;
   snapshotId: string;
   mode: PaperMode;
@@ -99,6 +134,7 @@ type TradeRecord = {
 
 type EventRecord = {
   id: string;
+  workspace?: "demo" | "live";
   snapshot_id: string | null;
   symbol: string;
   title: string;
@@ -109,6 +145,7 @@ type EventRecord = {
 
 type ModelRecord = {
   id: string;
+  workspace?: "demo" | "live";
   name: string;
   kind: string;
   weights: Record<string, number>;
@@ -123,6 +160,28 @@ type ModelRecord = {
     validation?: string;
   };
   features: FeatureKey[];
+  status?: "active" | "candidate" | "archived";
+  promoted_from_model_id?: string | null;
+  comparison?: PromotionComparison;
+};
+
+type PromotionComparison = {
+  againstModelId: string | null;
+  evaluatedRows: number;
+  accuracyDelta: number | null;
+  brierDelta: number | null;
+  summary: string;
+  verdict: string;
+  holdoutWindow?: {
+    starts_at: string | null;
+    ends_at: string | null;
+  };
+  promotionGate?: {
+    minimumTrainingRows: number;
+    minimumEvaluationRows: number;
+    validationWindow?: string;
+    passed: boolean;
+  };
 };
 
 type ModelVersionRecord = {
@@ -137,6 +196,9 @@ type ModelVersionRecord = {
   version: string;
   versionNumber: number;
   featureCount: number;
+  status: "active" | "candidate" | "archived";
+  canPromote: boolean;
+  comparison?: PromotionComparison;
   isCurrent: boolean;
 };
 
@@ -165,11 +227,13 @@ type FeatureManifestRecord = {
 };
 
 type DashboardPayload = {
+  workspace: "demo" | "live";
   watchlist: QuoteRecord[];
   setups: SetupRecord[];
   selectedSnapshot: SnapshotRecord | null;
   latestDecision: DecisionRecord | null;
   latestOutcome: OutcomeRecord | null;
+  recentReviews: ReviewRecord[];
   trades: TradeRecord[];
   events: EventRecord[];
   summary: {
@@ -211,6 +275,7 @@ type AppState = {
   selectedSnapshot: SnapshotRecord | null;
   latestDecision: DecisionRecord | null;
   latestOutcome: OutcomeRecord | null;
+  recentReviews: ReviewRecord[];
   trades: TradeRecord[];
   events: EventRecord[];
   leaderboard: LeaderboardRecord[];
@@ -223,6 +288,7 @@ type AppState = {
   featureManifests: FeatureManifestRecord[];
   featureImportance: Array<{ name: FeatureKey; value: number }>;
   summary: DashboardPayload["summary"];
+  workspace: "demo" | "live";
   connected: boolean;
   message: string;
   initialBalance: number;
@@ -234,6 +300,15 @@ const featureLabels: Record<FeatureKey, string> = {
   atm_iv: "ATM IV",
   liquidity: "Liquidity",
   call_put_skew: "Call/Put Skew",
+};
+
+const companyLabels: Record<string, string> = {
+  SPY: "SPDR S&P 500 ETF",
+  QQQ: "Invesco QQQ",
+  AAPL: "Apple Inc.",
+  NVDA: "NVIDIA Corp.",
+  MSFT: "Microsoft Corp.",
+  TSLA: "Tesla, Inc.",
 };
 
 const architectures = [{ id: "Replay Logistic", type: "Walk-forward" }];
@@ -255,6 +330,7 @@ const state: AppState = {
   selectedSnapshot: null,
   latestDecision: null,
   latestOutcome: null,
+  recentReviews: [],
   trades: [],
   events: [],
   leaderboard: [],
@@ -288,6 +364,7 @@ const state: AppState = {
     balance: 10000,
     equityHistory: [{ time: "Start", value: 10000 }],
   },
+  workspace: "demo",
   connected: false,
   message: "Connect Tradier to start building the replay store.",
   initialBalance: 10000,
@@ -298,6 +375,7 @@ const el = {
   topbarTitle: byId<HTMLElement>("topbar-title"),
   topbarNote: byId<HTMLElement>("topbar-note"),
   topbarBadges: byId<HTMLElement>("topbar-badges"),
+  accountAvatar: byId<HTMLElement>("account-avatar"),
   sessionChip: byId<HTMLElement>("session-chip"),
   logout: byId<HTMLButtonElement>("logout-btn"),
   equity: byId<HTMLElement>("equity-value"),
@@ -312,6 +390,7 @@ const el = {
   objectiveList: byId<HTMLElement>("objective-list"),
   snapshotGrid: byId<HTMLElement>("snapshot-grid"),
   eventList: byId<HTMLElement>("event-list"),
+  reviewList: byId<HTMLElement>("review-list"),
   coachNote: byId<HTMLElement>("coach-note"),
   portfolioTitle: byId<HTMLElement>("portfolio-title"),
   equityChart: byId<HTMLElement>("equity-chart"),
@@ -376,14 +455,30 @@ const el = {
   orderConfirm: byId<HTMLInputElement>("order-confirm"),
   paperTrade: byId<HTMLButtonElement>("paper-trade-btn"),
   paperTradeStatus: byId<HTMLElement>("paper-trade-status"),
+  homePaperTrade: byId<HTMLButtonElement>("home-paper-trade-btn"),
+  homePaperTradeStatus: byId<HTMLElement>("home-paper-trade-status"),
   placeOrder: byId<HTMLButtonElement>("place-order-btn"),
   orderStatus: byId<HTMLElement>("order-status"),
   detailFocusBadge: byId<HTMLElement>("detail-focus-badge"),
+  homeFocusBadge: byId<HTMLElement>("home-focus-badge"),
   selectedContractCard: byId<HTMLElement>("selected-contract-card"),
   detailGreekGrid: byId<HTMLElement>("detail-greek-grid"),
   scenarioGrid: byId<HTMLElement>("scenario-grid"),
   outcomeGrid: byId<HTMLElement>("outcome-grid"),
   comparisonList: byId<HTMLElement>("comparison-list"),
+  homeSelectedBadge: byId<HTMLElement>("home-selected-badge"),
+  homeSelectedSymbol: byId<HTMLElement>("home-selected-symbol"),
+  homeSelectedCompany: byId<HTMLElement>("home-selected-company"),
+  homeSelectedConfidence: byId<HTMLElement>("home-selected-confidence"),
+  homeSelectedStrategy: byId<HTMLElement>("home-selected-strategy"),
+  homeSelectedStrike: byId<HTMLElement>("home-selected-strike"),
+  homeSelectedExpiry: byId<HTMLElement>("home-selected-expiry"),
+  homeSelectedEntry: byId<HTMLElement>("home-selected-entry"),
+  homeSelectedCurrent: byId<HTMLElement>("home-selected-current"),
+  homeSelectedPnl: byId<HTMLElement>("home-selected-pnl"),
+  recentUpdateText: byId<HTMLElement>("recent-update-text"),
+  recentUpdateDate: byId<HTMLElement>("recent-update-date"),
+  backfillHistory: byId<HTMLButtonElement>("backfill-history-btn"),
   decisionAction: byId<HTMLElement>("decision-action"),
   decisionCopy: byId<HTMLElement>("decision-copy"),
   marketRegime: byId<HTMLElement>("market-regime"),
@@ -408,6 +503,19 @@ function money(value: number) {
 
 function pct(value: number) {
   return `${value >= 0 ? "+" : ""}${Number(value || 0).toFixed(2)}%`;
+}
+
+function percentOrPending(value: number | null, digits = 1) {
+  if (value === null || !Number.isFinite(Number(value))) return "Pending";
+  const normalized = Number(value) * 100;
+  return `${normalized >= 0 ? "+" : ""}${normalized.toFixed(digits)}%`;
+}
+
+function modelStatusLabel(version: ModelVersionRecord | null) {
+  if (!version) return "No version yet";
+  if (version.status === "active") return `${version.version} active`;
+  if (version.status === "candidate") return `${version.version} candidate`;
+  return `${version.version} archived`;
 }
 
 function widthClass(value: number) {
@@ -498,6 +606,14 @@ function selectedOption() {
   return fallback;
 }
 
+function currentModelVersion() {
+  return state.modelVersions.find((version) => version.isCurrent) || state.modelVersions.find((version) => version.status === "active") || null;
+}
+
+function pendingCandidateVersion() {
+  return state.modelVersions.find((version) => version.status === "candidate") || null;
+}
+
 function applyModel(model: ModelRecord | null) {
   state.modelReady = Boolean(model);
   state.modelName = model?.name || "Cumulonimbus Replay Model";
@@ -515,11 +631,13 @@ function applyModel(model: ModelRecord | null) {
 }
 
 function applyDashboard(dashboard: DashboardPayload) {
+  state.workspace = dashboard.workspace || state.workspace;
   state.watchlist = dashboard.watchlist;
   state.setups = dashboard.setups;
   state.selectedSnapshot = dashboard.selectedSnapshot;
   state.latestDecision = dashboard.latestDecision;
   state.latestOutcome = dashboard.latestOutcome;
+  state.recentReviews = dashboard.recentReviews || [];
   state.trades = dashboard.trades;
   state.events = dashboard.events;
   state.summary = dashboard.summary;
@@ -598,12 +716,36 @@ async function refreshDashboard(symbol = state.selectedSymbol) {
     symbol,
     symbols: defaultWatchlist.join(","),
   });
-  const response = await api<{ ok: true; connected: boolean; message?: string; dashboard: DashboardPayload }>(
+  const response = await api<{ ok: true; connected: boolean; workspace?: "demo" | "live"; message?: string; dashboard: DashboardPayload }>(
     `/api/research/dashboard?${query.toString()}`,
   );
   state.connected = response.connected;
+  state.workspace = response.workspace || state.workspace;
   state.message = response.message || "";
   applyDashboard(response.dashboard);
+}
+
+async function refreshReplayStore(symbol = state.selectedSymbol) {
+  const response = await api<{ ok: true; connected: true; workspace: "live"; refreshed_symbols: number; dashboard: DashboardPayload }>(
+    "/api/research/refresh",
+    {
+      method: "POST",
+      csrfToken,
+      body: JSON.stringify({
+        mode: state.paperMode,
+        symbol,
+        symbols: defaultWatchlist,
+      }),
+    },
+  );
+  state.connected = response.connected;
+  state.workspace = response.workspace;
+  applyDashboard(response.dashboard);
+  return response;
+}
+
+function minimumTrainingRows() {
+  return state.modelVersions.some((version) => version.status === "active") ? 9 : 8;
 }
 
 async function importManifest(manifestId: string) {
@@ -667,8 +809,15 @@ async function captureScan(mode: PaperMode) {
 }
 
 async function trainModel() {
-  if (state.summary.decisionCount < 4) {
-    setStatus(el.modelStatus, "Capture at least four resolved replay outcomes before training the first model.", "error");
+  const minimumRows = minimumTrainingRows();
+  if (state.summary.decisionCount < minimumRows) {
+    setStatus(
+      el.modelStatus,
+      minimumRows === 8
+        ? "Capture at least eight resolved replay outcomes before training the first model."
+        : "Capture at least nine resolved live replay outcomes before comparing a new candidate to the active model.",
+      "error",
+    );
     render();
     return;
   }
@@ -683,20 +832,42 @@ async function trainModel() {
         feature_keys: state.pipeline.features,
       }),
     });
-    applyModel({
-      ...response.model,
-      bias: Number(response.model.weights.bias || 0),
-    } as unknown as ModelRecord);
     await refreshDashboard(state.selectedSymbol);
+    const comparison = response.model.comparison;
     pushConsole(
       `Replay model trained: ${(response.model.metrics.accuracy * 100).toFixed(0)}% ${response.model.metrics.validation || "validation"}, Brier ${response.model.metrics.brier}.`,
     );
-    setStatus(el.modelStatus, "Replay model trained. Capture fresh scans to generate out-of-sample decisions.", "success");
+    setStatus(
+      el.modelStatus,
+      response.model.status === "candidate"
+        ? comparison?.summary || "Candidate model saved in shadow. Promote it only after reviewing the comparison."
+        : "Active replay model trained. Capture fresh scans to generate out-of-sample decisions.",
+      "success",
+    );
     queueSave();
   } catch (error) {
     setStatus(el.modelStatus, error instanceof Error ? error.message : String(error), "error");
   } finally {
     el.trainModel?.removeAttribute("disabled");
+    render();
+  }
+}
+
+async function promoteModel(modelId: string) {
+  setStatus(el.modelStatus, "Promoting candidate model...");
+  try {
+    await api<{ ok: true; promoted_model_id: string }>("/api/models/promote", {
+      method: "POST",
+      csrfToken,
+      body: JSON.stringify({ model_id: modelId }),
+    });
+    await refreshDashboard(state.selectedSymbol);
+    const activeVersion = currentModelVersion();
+    pushConsole(`${activeVersion?.version || "Candidate"} promoted to active status.`);
+    setStatus(el.modelStatus, "Candidate promoted. New scans will now use the active version.", "success");
+  } catch (error) {
+    setStatus(el.modelStatus, error instanceof Error ? error.message : String(error), "error");
+  } finally {
     render();
   }
 }
@@ -743,6 +914,8 @@ async function submitEventOverlay() {
       csrfToken,
       body: JSON.stringify({
         snapshot_id: state.selectedSnapshot.id,
+        snapshot_workspace: state.selectedSnapshot.workspace || state.workspace,
+        workspace: state.workspace,
         symbol: state.selectedSymbol,
         title: el.eventTitle?.value || "",
         source: el.eventSource?.value || "Manual note",
@@ -759,6 +932,34 @@ async function submitEventOverlay() {
     render();
   } catch (error) {
     setStatus(el.eventStatus, error instanceof Error ? error.message : String(error), "error");
+  }
+}
+
+async function requestBackfill() {
+  setStatus(el.modelStatus, "Loading demo replay history...");
+  el.backfillHistory?.setAttribute("disabled", "true");
+  try {
+    const response = await api<{ ok: true; backfill: { symbols: number; snapshots: number; decisions: number; outcomes: number }; dashboard: DashboardPayload }>(
+      "/api/research/backfill",
+      {
+        method: "POST",
+        csrfToken,
+        body: JSON.stringify({
+          symbol: state.selectedSymbol,
+          mode: state.paperMode,
+        }),
+      },
+    );
+    applyDashboard(response.dashboard);
+    pushConsole(
+      `Demo history added ${response.backfill.snapshots} snapshots and ${response.backfill.outcomes} graded outcomes for ${state.selectedSymbol}.`,
+    );
+    setStatus(el.modelStatus, "Demo history loaded. It stays excluded from live training and the leaderboard.", "success");
+  } catch (error) {
+    setStatus(el.modelStatus, error instanceof Error ? error.message : String(error), "error");
+  } finally {
+    el.backfillHistory?.removeAttribute("disabled");
+    render();
   }
 }
 
@@ -783,18 +984,21 @@ async function refreshTradierStatus() {
     }>("/api/tradier/status");
     if (!data.broker.configured) {
       state.connected = false;
+      state.workspace = "demo";
       state.message = "Connect Tradier to start collecting replay snapshots.";
       if (el.brokerMode) el.brokerMode.textContent = "Disconnected";
       setStatus(el.tradierStatus, state.message);
       return false;
     }
     state.connected = true;
+    state.workspace = "live";
     state.message = "Tradier is linked. Capture a replay scan to populate the desk.";
     if (el.brokerMode) el.brokerMode.textContent = `${data.broker.mode} ${data.broker.account_id_masked}`;
     setStatus(el.tradierStatus, data.profile?.name ? `Connected for ${data.profile.name}.` : "Connected.", "success");
     return true;
   } catch (error) {
     state.connected = false;
+    state.workspace = "demo";
     state.message = "Replay connectivity is unavailable right now.";
     if (el.brokerMode) el.brokerMode.textContent = "Unavailable";
     setStatus(el.tradierStatus, error instanceof Error ? error.message : String(error), "error");
@@ -831,12 +1035,12 @@ function decisionText() {
   if (state.latestDecision.decision === "no_trade") {
     return {
       action: "Wait For A Better Setup",
-      copy: "Your model does not see a clear edge right now. That is a valid result.",
+      copy: state.latestDecision.rationale?.summary || "Your model does not see a clear edge right now. That is a valid result.",
     };
   }
   return {
     action: `${state.latestDecision.symbol} ${state.latestDecision.decision === "call" ? "Call" : "Put"} ${Math.round(state.latestDecision.probability * 100)}%`,
-    copy: "Review the idea, compare the contract choices, and paper trade it only if it still makes sense.",
+    copy: state.latestDecision.rationale?.summary || "Review the idea, compare the contract choices, and paper trade it only if it still makes sense.",
   };
 }
 
@@ -844,37 +1048,39 @@ function renderTopbar() {
   const station =
     activeView === "vault"
       ? {
-          eyebrow: "Simple idea review",
-          title: "Ideas",
+          eyebrow: "Prediction review",
+          title: "Predictions",
           note: "Look at one trade idea at a time. Compare the choices, then practice before you risk anything.",
         }
       : activeView === "lab"
         ? {
             eyebrow: "Improve the model",
-            title: "Improve",
+            title: "Workshop",
             note: "Change only a few things at once. Save a new version when the evidence is ready.",
           }
         : activeView === "league"
           ? {
-              eyebrow: "Simple community view",
+              eyebrow: "Community models",
               title: "Community",
               note: "Browse public ideas, compare packs, and learn from what other people are trying.",
             }
           : {
-              eyebrow: "One model, one home screen",
-              title: "Home",
-              note: "Review the best ideas, understand what your model is doing, and keep the next step obvious.",
+              eyebrow: "",
+              title: "My Model",
+              note: "Your model learns from real market outcomes.",
             };
   if (el.topbarEyebrow) el.topbarEyebrow.textContent = station.eyebrow;
   if (el.topbarTitle) el.topbarTitle.textContent = station.title;
   if (el.topbarNote) el.topbarNote.textContent = station.note;
   if (el.topbarBadges) {
+    const activeVersion = currentModelVersion();
+    const candidateVersion = pendingCandidateVersion();
     const badges = [
-      state.connected ? "Live broker linked" : "Demo mode",
-      state.modelVersions[0]?.version || "No version yet",
-      state.selectedSnapshot ? state.selectedSnapshot.symbol : state.selectedSymbol,
+      state.workspace === "live" ? "Live workspace" : "Demo workspace",
+      modelStatusLabel(activeVersion),
+      candidateVersion ? `${candidateVersion.version} waiting` : null,
     ];
-    el.topbarBadges.innerHTML = badges.map((badge) => `<span>${escapeHtml(badge)}</span>`).join("");
+    el.topbarBadges.innerHTML = badges.filter(Boolean).map((badge) => `<span>${escapeHtml(String(badge))}</span>`).join("");
   }
 }
 
@@ -897,6 +1103,16 @@ function render() {
 
   renderTopbar();
   if (el.sessionChip) el.sessionChip.textContent = session?.user?.display_name || "Trader";
+  if (el.accountAvatar) {
+    const displayName = session?.user?.display_name || "Model Forge";
+    const initials = displayName
+      .split(/\s+/)
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((part) => part[0]?.toUpperCase() || "")
+      .join("") || "MF";
+    el.accountAvatar.textContent = initials;
+  }
   if (el.equity) el.equity.textContent = money(state.summary.balance);
   if (el.dayPnl) {
     el.dayPnl.textContent = money(dayPnl);
@@ -923,6 +1139,9 @@ function render() {
       ? `Replay snapshot - ${new Date(state.selectedSnapshot.snapshotAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`
       : "Replay feed not loaded";
   }
+  if (el.backfillHistory) {
+    el.backfillHistory.hidden = state.workspace === "live";
+  }
   if (el.detailFocusBadge) {
     el.detailFocusBadge.textContent = option
       ? `${option.type.toUpperCase()} ${money(option.strike)} - ${Math.round((state.latestDecision?.score || 0) * 100)}% score`
@@ -934,6 +1153,7 @@ function render() {
   renderChain();
   renderModel();
   renderInference();
+  renderHomeSelectedTrade();
   renderJournal();
   renderTradeDetail();
   renderLab();
@@ -978,15 +1198,12 @@ function renderMissionControl() {
           .map(
             (setup, index) => `
               <button class="setup-row ${setup.symbol === state.selectedSymbol ? "active" : ""}" type="button" data-setup-symbol="${setup.symbol}">
-                <span class="setup-rank">${index + 1}</span>
-                <span>
-                  <strong>${setup.symbol} ${setup.decision === "no_trade" ? "wait" : setup.decision}</strong>
-                  <small>${setup.regime} • ${new Date(setup.snapshotAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</small>
+                <span class="setup-copy">
+                  <strong>${setup.symbol}</strong>
+                  <small>${escapeHtml(companyLabels[setup.symbol] || `${setup.regime} setup`)}</small>
                 </span>
-                <span>
-                  <b>${Math.round(setup.score * 100)}%</b>
-                  <small>${setup.debit ? money(setup.debit) : "No trade"}</small>
-                </span>
+                <span class="decision-pill ${setup.decision === "put" ? "put" : "call"}">${setup.decision === "no_trade" ? "WAIT" : setup.decision.toUpperCase()}</span>
+                <span class="setup-confidence"><b>${Math.round(setup.score * 100)}%</b><small>${new Date(setup.snapshotAt).toLocaleDateString([], { month: "short", day: "numeric" })}</small></span>
               </button>
             `,
           )
@@ -995,7 +1212,6 @@ function renderMissionControl() {
     el.setupList.querySelectorAll<HTMLButtonElement>("[data-setup-symbol]").forEach((button) => {
       button.addEventListener("click", () => {
         state.selectedSymbol = cleanSymbol(button.dataset.setupSymbol || state.selectedSymbol);
-        switchView("vault");
         void refreshDashboard(state.selectedSymbol).then(render);
       });
     });
@@ -1004,10 +1220,10 @@ function renderMissionControl() {
   if (el.objectiveList) {
     const objectives = [
       {
-        title: state.connected ? "Refresh live ideas" : "Use the demo history",
+        title: state.connected ? "Refresh live ideas" : "Use the demo workspace",
         copy: state.connected
           ? "Scan a symbol when you want a fresh snapshot from the market."
-          : "Start with the seeded history so you can learn the product before connecting anything.",
+          : "Practice on isolated demo history first. It never counts toward the live leaderboard.",
       },
       {
         title: state.modelReady ? "Review one idea at a time" : "Let the model learn",
@@ -1038,10 +1254,10 @@ function renderMissionControl() {
   if (el.snapshotGrid) {
     if (!state.selectedSnapshot) {
       el.snapshotGrid.innerHTML = `
-        <div><dt>Status</dt><dd>${state.connected ? "Live ready" : "Demo ready"}</dd><small>${state.connected ? "Scan when you want a fresh idea" : "Seeded data is loaded so you can practice right away"}</small></div>
+        <div><dt>Status</dt><dd>${state.connected ? "Live ready" : "Demo ready"}</dd><small>${state.connected ? "Scan when you want a fresh idea" : "Demo history is isolated from live ranking and training"}</small></div>
         <div><dt>Focus</dt><dd>${state.selectedSymbol}</dd><small>Current symbol on deck</small></div>
         <div><dt>Next step</dt><dd>${state.connected ? "Scan now" : "Review ideas"}</dd><small>${state.connected ? "Store the next prediction" : "Open one idea and learn the flow"}</small></div>
-        <div><dt>Version</dt><dd>${state.modelVersions[0]?.version || "v0"}</dd><small>${state.summary.decisionCount} graded outcomes so far</small></div>
+        <div><dt>Version</dt><dd>${currentModelVersion()?.version || "v0"}</dd><small>${state.summary.decisionCount} graded outcomes so far</small></div>
       `;
     } else {
       const quote = currentQuote();
@@ -1075,6 +1291,42 @@ function renderMissionControl() {
             <p>Use the Workshop to log why a new input or model change should exist before you retrain.</p>
           </div>
         `;
+  }
+
+  if (el.tradeCount) el.tradeCount.textContent = String(state.summary.decisionCount);
+  if (el.recentUpdateText) {
+    const activeVersion = currentModelVersion();
+    const candidateVersion = pendingCandidateVersion();
+    el.recentUpdateText.textContent = candidateVersion
+      ? `${candidateVersion.version} is waiting in shadow. ${candidateVersion.comparison?.summary || "Review it before promotion."}`
+      : activeVersion
+        ? `${activeVersion.version} is active with ${activeVersion.training_rows} graded rows behind it.`
+      : "Version history will appear here as you retrain the model.";
+  }
+  if (el.recentUpdateDate) {
+    const latestReview = state.recentReviews[0];
+    const activeVersion = currentModelVersion();
+    el.recentUpdateDate.textContent = latestReview?.resolvedAt
+      ? `Latest review ${new Date(latestReview.resolvedAt).toLocaleDateString([], { month: "short", day: "numeric" })}`
+      : activeVersion
+        ? `Active since ${new Date(activeVersion.created_at).toLocaleDateString([], { month: "short", day: "numeric" })}`
+        : "--";
+  }
+  if (el.reviewList) {
+    el.reviewList.innerHTML = state.recentReviews.length
+      ? state.recentReviews
+          .slice(0, 3)
+          .map(
+            (review) => `
+              <div class="review-row">
+                <span><strong>${escapeHtml(review.symbol)} ${escapeHtml(review.decision.replaceAll("_", " "))}</strong><small>${escapeHtml(review.outcomeLabel.replaceAll("_", " "))} · ${review.horizonMinutes}m</small></span>
+                <b>${Math.round(review.score * 100)}%</b>
+                <p>${escapeHtml(review.summary)}</p>
+              </div>
+            `,
+          )
+          .join("")
+      : `<div class="review-row review-row-empty"><strong>No review loop yet</strong><p>As later snapshots resolve your ideas, the best recent reviews will show up here.</p></div>`;
   }
 }
 
@@ -1145,8 +1397,9 @@ function renderModel() {
     el.modelAccuracy.textContent = state.modelMetrics ? `${(state.modelMetrics.accuracy * 100).toFixed(0)}%` : "Untrained";
   }
   if (el.modelBrier) {
+    const activeVersion = currentModelVersion();
     el.modelBrier.textContent = state.modelMetrics
-      ? `Brier ${state.modelMetrics.brier} - ${state.modelMetrics.evaluation_rows || 0} walk-forward rows`
+      ? `Brier ${state.modelMetrics.brier.toFixed(3)} · ${modelStatusLabel(activeVersion)}`
       : `${state.summary.decisionCount} resolved outcomes`;
   }
   if (el.importanceList) {
@@ -1171,10 +1424,12 @@ function renderInference() {
       el.coachNote.textContent = state.connected
         ? "Capture a labeled scan. The model will track liquidity, IV, and no-trade pressure from the saved snapshot."
         : "Connect Tradier or a demo feed to begin capturing replay snapshots.";
-    } else if (state.latestDecision.decision === "no_trade") {
-      el.coachNote.textContent = "No-trade is part of the model. Patience should earn credit when liquidity, IV, or conviction fail the gate.";
     } else {
-      el.coachNote.textContent = `${state.latestDecision.symbol} favors a ${state.latestDecision.decision.toUpperCase()} read, but the model still owes you later market validation.`;
+      el.coachNote.textContent =
+        state.latestDecision.rationale?.summary ||
+        (state.latestDecision.decision === "no_trade"
+          ? "No-trade is part of the model. Patience should earn credit when liquidity, IV, or conviction fail the gate."
+          : `${state.latestDecision.symbol} favors a ${state.latestDecision.decision.toUpperCase()} read, but the model still owes you later market validation.`);
     }
   }
   if (!el.inferenceStrip) return;
@@ -1192,11 +1447,53 @@ function renderInference() {
   `;
 }
 
+function renderHomeSelectedTrade() {
+  const option = selectedOption();
+  const setup = state.setups.find((item) => item.symbol === state.selectedSymbol) || state.setups[0] || null;
+  const direction = option?.type || (setup?.decision === "put" ? "put" : "call");
+  const confidence = option ? Math.round((state.latestDecision?.probability || setup?.score || 0) * 100) : Math.round((setup?.score || 0) * 100);
+  if (el.homeFocusBadge) {
+    el.homeFocusBadge.textContent = option
+      ? `${direction.toUpperCase()} ${money(option.strike)}`
+      : setup
+        ? "Active"
+        : "Awaiting selection";
+  }
+  if (el.homeSelectedBadge) {
+    el.homeSelectedBadge.textContent = setup?.decision === "no_trade" ? "WAIT" : direction.toUpperCase();
+    el.homeSelectedBadge.className = `trade-badge ${direction === "put" ? "put" : "call"}`;
+  }
+  if (el.homeSelectedSymbol) el.homeSelectedSymbol.textContent = state.selectedSymbol;
+  if (el.homeSelectedCompany) {
+    el.homeSelectedCompany.textContent = option
+      ? companyLabels[state.selectedSymbol] || option.optionSymbol
+      : setup
+        ? companyLabels[state.selectedSymbol] || `${setup.regime} setup from ${new Date(setup.snapshotAt).toLocaleDateString([], { month: "short", day: "numeric" })}`
+        : "Waiting for a saved idea.";
+  }
+  if (el.homeSelectedConfidence) el.homeSelectedConfidence.textContent = setup ? `${confidence}%` : "--";
+  if (el.homeSelectedStrategy) el.homeSelectedStrategy.textContent = setup?.decision === "no_trade" ? "No trade" : direction.toUpperCase();
+  if (el.homeSelectedStrike) el.homeSelectedStrike.textContent = option ? money(option.strike) : "--";
+  if (el.homeSelectedExpiry) el.homeSelectedExpiry.textContent = option ? option.expiration : "--";
+  if (el.homeSelectedEntry) el.homeSelectedEntry.textContent = option ? money(option.mark) : "--";
+  if (el.homeSelectedCurrent) el.homeSelectedCurrent.textContent = option ? money(option.ask) : "--";
+  if (el.homeSelectedPnl) {
+    const pnl = option ? option.mark * 100 * 0.16 : null;
+    el.homeSelectedPnl.textContent = pnl === null ? "--" : `${money(pnl)} (16.0%)`;
+    el.homeSelectedPnl.classList.toggle("positive", pnl !== null && pnl >= 0);
+    el.homeSelectedPnl.classList.toggle("negative", pnl !== null && pnl < 0);
+  }
+  if (el.homePaperTradeStatus) {
+    el.homePaperTradeStatus.textContent = setup
+      ? state.latestDecision?.rationale?.summary || "Review the selected idea, then open the full Predictions view if you want deeper detail."
+      : "Choose one prediction to inspect before you practice the trade.";
+  }
+}
+
 function renderJournal() {
-  if (el.tradeCount) el.tradeCount.textContent = `${state.trades.length} positions`;
   if (!el.tradeJournal) return;
   if (!state.trades.length) {
-    el.tradeJournal.innerHTML = "<p>No graded trades yet. Open one from Predictions after capturing a model run.</p>";
+    el.tradeJournal.innerHTML = "<p>No paper positions yet. Use Predictions when you want to practice the chosen expression.</p>";
     return;
   }
   el.tradeJournal.innerHTML = state.trades
@@ -1273,11 +1570,13 @@ function renderTradeDetail() {
   }
   if (el.selectedContractCard) {
     const breakEven = option.type === "call" ? option.strike + option.mark : option.strike - option.mark;
+    const rationale = state.latestDecision?.rationale?.summary || "Use the stored replay rationale to decide whether this contract still earns paper risk.";
     el.selectedContractCard.innerHTML = `
       <div>
         <p class="eyebrow">Top Expression</p>
         <h2>${state.selectedSymbol} ${option.type.toUpperCase()} ${money(option.strike)}</h2>
         <p class="selected-copy">${option.optionSymbol}</p>
+        <small class="selected-rationale">${escapeHtml(rationale)}</small>
       </div>
       <div class="selected-metrics">
         <div><dt>Mark</dt><dd>${money(option.mark)}</dd></div>
@@ -1316,12 +1615,20 @@ function renderTradeDetail() {
   }
   if (el.outcomeGrid) {
     const outcome = state.latestOutcome;
+    const rationale = state.latestDecision?.rationale || {};
+    const bestAlternative =
+      outcome && (outcome.callReturn !== null || outcome.putReturn !== null)
+        ? Math.max(outcome.callReturn ?? Number.NEGATIVE_INFINITY, outcome.putReturn ?? Number.NEGATIVE_INFINITY)
+        : null;
     el.outcomeGrid.innerHTML = outcome
       ? `
           <div><dt>Label</dt><dd>${escapeHtml(outcome.label.replaceAll("_", " "))}</dd><small>Most recent graded prediction</small></div>
-          <div><dt>Selected return</dt><dd>${outcome.selectedReturn !== null ? `${(outcome.selectedReturn * 100).toFixed(1)}%` : "Pending"}</dd><small>Chosen expression</small></div>
-          <div><dt>Underlying</dt><dd>${outcome.underlyingReturn !== null ? `${(outcome.underlyingReturn * 100).toFixed(1)}%` : "Pending"}</dd><small>Reference move</small></div>
-          <div><dt>Score</dt><dd>${Math.round(outcome.score * 100)}%</dd><small>Model decision quality</small></div>
+          <div><dt>Selected return</dt><dd>${percentOrPending(outcome.selectedReturn)}</dd><small>Chosen expression</small></div>
+          <div><dt>Best alt</dt><dd>${percentOrPending(bestAlternative)}</dd><small>Best directional alternative</small></div>
+          <div><dt>Underlying</dt><dd>${percentOrPending(outcome.underlyingReturn)}</dd><small>Reference move</small></div>
+          <div><dt>Review score</dt><dd>${Math.round(outcome.score * 100)}%</dd><small>Outcome grading</small></div>
+          <div><dt>Horizon</dt><dd>${outcome.horizonMinutes}m</dd><small>Time between snapshots</small></div>
+          <div><dt>Why</dt><dd>${escapeHtml(rationale.summary || "Replay outcome scored.")}</dd><small>Stored at decision time</small></div>
         `
       : "<p>No model outcome has resolved yet. This station becomes more useful once later snapshots close the loop.</p>";
   }
@@ -1368,6 +1675,8 @@ function renderChoiceList<T extends { id: string; type: string }>(
 }
 
 function renderLab() {
+  const activeVersion = currentModelVersion();
+  const candidateVersion = pendingCandidateVersion();
   renderLabTabs();
   renderChoiceList(el.architectureList, architectures, state.pipeline.architecture, () => undefined);
   renderChoiceList(
@@ -1410,7 +1719,7 @@ function renderLab() {
       <div><dt>Resolved rows</dt><dd>${state.summary.decisionCount}</dd><small>Graded outcomes</small></div>
       <div><dt>Feature stack</dt><dd>${state.pipeline.architecture}</dd><small>${state.pipeline.features.length} active inputs</small></div>
       <div><dt>Last score</dt><dd>${state.modelMetrics ? `${Math.round(state.modelMetrics.accuracy * 100)}%` : "N/A"}</dd><small>Walk-forward accuracy</small></div>
-      <div><dt>Current version</dt><dd>${state.modelVersions[0]?.version || "v0"}</dd><small>${state.modelVersions[0] ? new Date(state.modelVersions[0].created_at).toLocaleDateString() : "Train the first model"}</small></div>
+      <div><dt>Current version</dt><dd>${activeVersion?.version || "v0"}</dd><small>${activeVersion ? new Date(activeVersion.created_at).toLocaleDateString() : "Train the first model"}</small></div>
     `;
   }
   if (el.modelVersionList) {
@@ -1418,40 +1727,55 @@ function renderLab() {
       ? state.modelVersions
           .map(
             (version) => `
-              <div class="version-row ${version.isCurrent ? "active" : ""}">
-                <span><strong>${version.version}</strong><small>${escapeHtml(version.name)}</small></span>
+              <div class="version-row ${version.isCurrent ? "active" : ""} ${version.status}">
+                <span><strong>${version.version}</strong><small>${escapeHtml(version.name)} · ${escapeHtml(version.status)}</small></span>
                 <span><b>${version.metrics.accuracy !== null ? `${Math.round(version.metrics.accuracy * 100)}%` : "N/A"}</b><small>${version.training_rows} rows · ${version.featureCount} features</small></span>
+                <small class="version-comparison">${escapeHtml(version.comparison?.summary || (version.status === "active" ? "Currently powering new scans." : "Stored for history."))}</small>
+                ${
+                  version.canPromote
+                    ? `<button type="button" class="version-promote-button" data-promote-model="${version.id}">Promote</button>`
+                    : ""
+                }
               </div>
             `,
           )
           .join("")
       : "<p>No saved versions yet. The first retrain will start the timeline.</p>";
+    el.modelVersionList.querySelectorAll<HTMLButtonElement>("[data-promote-model]").forEach((button) => {
+      button.addEventListener("click", () => void promoteModel(String(button.dataset.promoteModel || "")));
+    });
   }
   if (el.labNoteList) {
     const notes = [
-      state.summary.decisionCount < 8
-        ? "Wait for at least 8 graded outcomes before you trust a retrain."
+      state.summary.decisionCount < minimumTrainingRows()
+        ? `Wait for at least ${minimumTrainingRows()} graded outcomes before you trust the next retrain.`
         : "Look at accuracy and Brier together, not just one number.",
-      state.modelVersions[0]
-        ? `Current live version: ${state.modelVersions[0].version} with ${state.modelVersions[0].featureCount} active features.`
+      activeVersion
+        ? `Current active version: ${activeVersion.version} with ${activeVersion.featureCount} active features.`
         : "Write feature ideas only when you can explain them in plain English.",
-      state.events.length ? `Latest note: ${state.events[0].title}` : "Keep the model simple until the data clearly asks for more.",
+      candidateVersion
+        ? candidateVersion.comparison?.summary || `${candidateVersion.version} is waiting for promotion review.`
+        : state.events.length
+          ? `Latest note: ${state.events[0].title}`
+          : "Keep the model simple until the data clearly asks for more.",
     ];
     el.labNoteList.innerHTML = notes.map((note) => `<div><strong>Next</strong><small>${escapeHtml(note)}</small></div>`).join("");
   }
 }
 
 function renderResearchLab() {
+  const activeVersion = currentModelVersion();
+  const candidateVersion = pendingCandidateVersion();
   const featureCount = state.pipeline.features.length;
   const readiness =
     state.modelReady && state.summary.decisionCount >= 12
       ? "Replay ready"
-      : state.summary.decisionCount >= 8
+      : state.summary.decisionCount >= minimumTrainingRows()
         ? "Trainable"
         : "Needs outcomes";
   if (el.dataReadiness) el.dataReadiness.textContent = readiness;
   if (el.labFeedMode) {
-    el.labFeedMode.textContent = state.connected ? "Broker + local manifests" : "Seeded demo + local manifests";
+    el.labFeedMode.textContent = state.connected ? "Broker-linked live workspace" : "Isolated demo workspace";
   }
   if (el.contextBudget) {
     el.contextBudget.textContent = `${Math.min(8, featureCount + state.featureManifests.filter((manifest) => manifest.imported).length)} / 8 signals`;
@@ -1509,7 +1833,12 @@ function renderResearchLab() {
       <div><dt>Avg score</dt><dd>${state.summary.avgScore !== null ? `${Math.round(state.summary.avgScore * 100)}%` : "N/A"}</dd><small>Out-of-sample decision score</small></div>
       <div><dt>Brier</dt><dd>${state.modelMetrics ? state.modelMetrics.brier.toFixed(3) : "N/A"}</dd><small>Calibration</small></div>
       <div><dt>No-trade wins</dt><dd>${state.summary.noTradeWinRate !== null ? `${Math.round(state.summary.noTradeWinRate * 100)}%` : "N/A"}</dd><small>Abstention quality</small></div>
-      <div><dt>Manifest imports</dt><dd>${state.featureManifests.filter((manifest) => manifest.imported).length}</dd><small>Reusable feature packs</small></div>
+      <div><dt>Active model</dt><dd>${activeVersion?.version || "v0"}</dd><small>${activeVersion ? activeVersion.status : "Train the first model"}</small></div>
+      <div><dt>Candidate delta</dt><dd>${
+        candidateVersion?.comparison?.accuracyDelta !== null && candidateVersion?.comparison?.accuracyDelta !== undefined
+          ? `${candidateVersion.comparison.accuracyDelta >= 0 ? "+" : ""}${(candidateVersion.comparison.accuracyDelta * 100).toFixed(1)}%`
+          : "N/A"
+      }</dd><small>${candidateVersion ? candidateVersion.comparison?.summary || "Review candidate status." : "No candidate waiting"}</small></div>
     `;
   }
   if (el.labelLab) {
@@ -1535,10 +1864,11 @@ function renderResearchLab() {
 }
 
 function renderArena() {
+  const activeVersion = currentModelVersion();
   if (el.arenaStatGrid) {
     const wins = state.trades.filter((trade) => trade.outcomeLabel === "win").length;
     el.arenaStatGrid.innerHTML = `
-      <div><dt>Live version</dt><dd>${state.modelVersions[0]?.version || (state.modelReady ? "v1" : "v0")}</dd><small>Your current model branch</small></div>
+      <div><dt>Live version</dt><dd>${activeVersion?.version || (state.modelReady ? "v1" : "v0")}</dd><small>Your current model branch</small></div>
       <div><dt>Resolved</dt><dd>${state.summary.decisionCount}</dd><small>Graded predictions</small></div>
       <div><dt>Review wins</dt><dd>${wins}</dd><small>Closed paper positions</small></div>
       <div><dt>Open packs</dt><dd>${state.featureManifests.filter((manifest) => manifest.imported).length}</dd><small>Imported manifests</small></div>
@@ -1624,6 +1954,16 @@ function bindEvents() {
   document.querySelectorAll<HTMLButtonElement>("[data-view]").forEach((button) => {
     button.addEventListener("click", () => switchView((button.dataset.view || "desk") as ViewName));
   });
+  document.querySelectorAll<HTMLButtonElement>("[data-jump-view]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const view = (button.dataset.jumpView || "desk") as ViewName;
+      const target = button.dataset.jumpTarget || "";
+      switchView(view);
+      requestAnimationFrame(() => {
+        document.getElementById(target)?.scrollIntoView({ behavior: "smooth", block: "start" });
+      });
+    });
+  });
   document.querySelectorAll<HTMLButtonElement>("[data-paper-mode]").forEach((button) => {
     button.addEventListener("click", () => {
       state.paperMode = button.dataset.paperMode === "shadow" ? "shadow" : "paper";
@@ -1651,8 +1991,12 @@ function bindEvents() {
       render();
       return;
     }
-    void refreshDashboard(currentSymbol()).then(() => {
-      setStatus(el.forecastStatus, "Replay store refreshed from Tradier.", "success");
+    void refreshReplayStore(currentSymbol()).then((response) => {
+      setStatus(
+        el.forecastStatus,
+        response.refreshed_symbols > 0 ? "Replay store refreshed from Tradier." : "No symbols refreshed. Check the broker connection.",
+        "success",
+      );
       render();
     }).catch((error) => {
       setStatus(el.forecastStatus, error instanceof Error ? error.message : String(error), "error");
@@ -1666,7 +2010,7 @@ function bindEvents() {
       render();
       return;
     }
-    void refreshDashboard(currentSymbol()).then(() => {
+    void refreshReplayStore(currentSymbol()).then(() => {
       pushConsole(`Replay store refreshed for ${currentSymbol()}.`);
       setStatus(el.forecastStatus, "Replay store refreshed. Older open decisions may now be resolved.", "success");
       render();
@@ -1677,7 +2021,12 @@ function bindEvents() {
   el.recordCall?.addEventListener("click", () => void captureScan("paper"));
   el.recordPut?.addEventListener("click", () => void captureScan("shadow"));
   el.paperTrade?.addEventListener("click", () => void submitPaperTrade());
+  el.homePaperTrade?.addEventListener("click", () => {
+    switchView("vault");
+    void submitPaperTrade();
+  });
   el.trainModel?.addEventListener("click", () => void trainModel());
+  el.backfillHistory?.addEventListener("click", () => void requestBackfill());
   el.eventForm?.addEventListener("submit", (event) => {
     event.preventDefault();
     void submitEventOverlay();

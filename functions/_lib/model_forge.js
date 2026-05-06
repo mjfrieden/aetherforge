@@ -1,7 +1,9 @@
 import { randomBase64Url } from "./encoding.js";
 import { audit, requireDb } from "./db.js";
 import { nowIso } from "./http.js";
+import { buildPromotionComparison, loadShadowPromotionPairs, summarizeShadowPromotionPairs } from "./model_governance.js";
 import { parseStoredModel, predictWithWeights, trainLogisticModel } from "./model.js";
+import { normalizeResearchWorkspace, RESEARCH_WORKSPACE_DEMO } from "./research_workspace.js";
 
 const FEATURE_KEYS = ["change_pct", "intraday_range", "atm_iv", "liquidity", "call_put_skew"];
 const DEFAULT_PIPELINE_FEATURES = ["change_pct", "intraday_range", "atm_iv", "liquidity"];
@@ -66,6 +68,24 @@ const STARTER_ROWS = [
   { created_at: "2026-04-29T14:30:00.000Z", change_pct: -0.27, intraday_range: 0.26, atm_iv: 0.15, liquidity: 0.39, call_put_skew: -0.13, label: 0, price: 511.4 },
 ];
 
+const DEMO_BACKFILL_PATTERNS = [
+  [
+    { decision: "call", probability: 0.67, score: 0.74, selectedReturn: 0.18, callReturn: 0.18, putReturn: -0.1, underlyingReturn: 0.011, priceMove: 0.012, noTradePressure: 0.23 },
+    { decision: "no_trade", probability: 0.51, score: 0.82, selectedReturn: null, callReturn: 0.03, putReturn: -0.02, underlyingReturn: 0.001, priceMove: 0.0015, noTradePressure: 0.72 },
+    { decision: "put", probability: 0.35, score: 0.71, selectedReturn: 0.16, callReturn: -0.08, putReturn: 0.16, underlyingReturn: -0.012, priceMove: -0.013, noTradePressure: 0.29 },
+  ],
+  [
+    { decision: "put", probability: 0.33, score: 0.73, selectedReturn: 0.17, callReturn: -0.09, putReturn: 0.17, underlyingReturn: -0.014, priceMove: -0.015, noTradePressure: 0.25 },
+    { decision: "call", probability: 0.64, score: 0.76, selectedReturn: 0.15, callReturn: 0.15, putReturn: -0.08, underlyingReturn: 0.009, priceMove: 0.01, noTradePressure: 0.27 },
+    { decision: "no_trade", probability: 0.5, score: 0.84, selectedReturn: null, callReturn: 0.02, putReturn: -0.01, underlyingReturn: 0.001, priceMove: 0.001, noTradePressure: 0.75 },
+  ],
+  [
+    { decision: "call", probability: 0.62, score: 0.72, selectedReturn: 0.14, callReturn: 0.14, putReturn: -0.07, underlyingReturn: 0.008, priceMove: 0.009, noTradePressure: 0.26 },
+    { decision: "put", probability: 0.37, score: 0.7, selectedReturn: 0.13, callReturn: -0.06, putReturn: 0.13, underlyingReturn: -0.009, priceMove: -0.01, noTradePressure: 0.3 },
+    { decision: "call", probability: 0.66, score: 0.77, selectedReturn: 0.18, callReturn: 0.18, putReturn: -0.11, underlyingReturn: 0.013, priceMove: 0.014, noTradePressure: 0.24 },
+  ],
+];
+
 function parseJson(value, fallback = null) {
   try {
     return JSON.parse(value);
@@ -93,6 +113,24 @@ function occOptionSymbol(symbol, expirationDate, type, strike) {
 
 function deepClone(value) {
   return JSON.parse(JSON.stringify(value));
+}
+
+function clampNumber(value, min, max) {
+  const number = Number(value);
+  if (!Number.isFinite(number)) {
+    return min;
+  }
+  return Math.max(min, Math.min(max, number));
+}
+
+function shiftIso(value, minutes) {
+  return new Date(new Date(value).getTime() + minutes * 60000).toISOString();
+}
+
+function symbolHash(value) {
+  return String(value || "")
+    .split("")
+    .reduce((sum, char) => sum + char.charCodeAt(0), 0);
 }
 
 function optionRowsForSnapshot(symbol, expirationDate, price, createdAt) {
@@ -225,6 +263,134 @@ function latestSnapshotTemplates() {
   ];
 }
 
+function quoteTemplateFromSnapshot(snapshot) {
+  return {
+    symbol: snapshot.symbol,
+    price: Number(snapshot.quote?.price || snapshot.price || 0),
+    prevclose: Number(snapshot.quote?.prevclose || snapshot.prevclose || snapshot.quote?.price || snapshot.price || 0),
+    high: Number(snapshot.quote?.high || snapshot.high || snapshot.quote?.price || snapshot.price || 0),
+    low: Number(snapshot.quote?.low || snapshot.low || snapshot.quote?.price || snapshot.price || 0),
+    open: Number(snapshot.quote?.open || snapshot.open || snapshot.quote?.price || snapshot.price || 0),
+    volume: Number(snapshot.quote?.volume || snapshot.volume || 40000000),
+    averageVolume: Number(snapshot.quote?.averageVolume || snapshot.averageVolume || snapshot.quote?.volume || snapshot.volume || 42000000),
+    changePercent: Number(snapshot.quote?.changePercent || snapshot.changePercent || 0),
+    sector: snapshot.quote?.sector || snapshot.sector || (snapshot.symbol === "SPY" || snapshot.symbol === "QQQ" ? "ETF" : "Equity"),
+    snapshotAt: snapshot.snapshotAt,
+    expirationDate: snapshot.expirationDate || snapshot.expiration || "2026-05-16",
+    features: deepClone(snapshot.features || {}),
+  };
+}
+
+async function insertSyntheticSnapshot(db, userId, template, workspace = RESEARCH_WORKSPACE_DEMO) {
+  const snapshotId = randomBase64Url(18);
+  const quote = {
+    symbol: template.symbol,
+    price: template.price,
+    bid: Number((template.price - 0.05).toFixed(2)),
+    ask: Number((template.price + 0.05).toFixed(2)),
+    open: template.open,
+    high: template.high,
+    low: template.low,
+    prevclose: template.prevclose,
+    volume: template.volume,
+    averageVolume: template.averageVolume,
+    changePercent: template.changePercent,
+    sector: template.sector,
+    snapshotAt: template.snapshotAt,
+  };
+  await db
+    .prepare(
+      "INSERT INTO research_snapshots (id, user_id, workspace, symbol, expiration_date, snapshot_at, quote_json, feature_json, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+    )
+    .bind(
+      snapshotId,
+      userId,
+      normalizeResearchWorkspace(workspace),
+      template.symbol,
+      template.expirationDate,
+      template.snapshotAt,
+      JSON.stringify(quote),
+      JSON.stringify(template.features),
+      template.snapshotAt,
+    )
+    .run();
+
+  const optionRows = optionRowsForSnapshot(template.symbol, template.expirationDate, template.price, template.snapshotAt);
+  for (const option of optionRows) {
+    await db
+      .prepare(
+        "INSERT INTO research_option_quotes (id, snapshot_id, option_symbol, contract_type, strike, expiration_date, bid, ask, last, mark, volume, open_interest, implied_volatility, delta, gamma, theta, vega, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+      )
+      .bind(
+        option.id,
+        snapshotId,
+        option.optionSymbol,
+        option.type,
+        option.strike,
+        option.expiration,
+        option.bid,
+        option.ask,
+        option.last,
+        option.mark,
+        option.volume,
+        option.openInterest,
+        option.impliedVolatility,
+        option.delta,
+        option.gamma,
+        option.theta,
+        option.vega,
+        option.createdAt,
+      )
+      .run();
+  }
+
+  return {
+    id: snapshotId,
+    symbol: template.symbol,
+    snapshotAt: template.snapshotAt,
+    expirationDate: template.expirationDate,
+    quote,
+    options: optionRows,
+    features: template.features,
+  };
+}
+
+function evolveBackfillTemplate(base, pattern, stepIndex) {
+  const price = Number((base.price * (1 + pattern.priceMove)).toFixed(2));
+  const changePercent = Number((pattern.underlyingReturn * 100).toFixed(2));
+  const intradayRange = clampNumber(Math.abs(pattern.underlyingReturn) * 10 + 0.1 + stepIndex * 0.01, 0.08, 0.42);
+  const liquidity = clampNumber((base.features?.liquidity ?? 0.5) + (pattern.decision === "no_trade" ? -0.08 : 0.02) - stepIndex * 0.01, 0.2, 0.82);
+  const atmIv = clampNumber((base.features?.atm_iv ?? 0) + (pattern.decision === "no_trade" ? 0.08 : pattern.decision === "put" ? 0.05 : -0.03), -0.3, 0.35);
+  const skew = clampNumber(
+    pattern.decision === "call" ? 0.16 + stepIndex * 0.02 : pattern.decision === "put" ? -0.16 - stepIndex * 0.02 : 0.01,
+    -0.35,
+    0.35,
+  );
+  const snapshotAt = shiftIso(base.snapshotAt, 90 * (stepIndex + 1));
+
+  return {
+    symbol: base.symbol,
+    price,
+    prevclose: Number(base.price.toFixed(2)),
+    high: Number((Math.max(price, base.price) * 1.006).toFixed(2)),
+    low: Number((Math.min(price, base.price) * 0.994).toFixed(2)),
+    open: Number(((base.price + price) / 2).toFixed(2)),
+    volume: Math.max(1000000, Math.round(base.volume * (0.96 + stepIndex * 0.03))),
+    averageVolume: Math.max(1000000, Math.round(base.averageVolume)),
+    changePercent,
+    sector: base.sector,
+    snapshotAt,
+    expirationDate: base.expirationDate,
+    features: {
+      change_pct: clampNumber(changePercent / 4, -1, 1),
+      intraday_range: clampNumber(intradayRange, -1, 1),
+      atm_iv: clampNumber((atmIv - 0.3) / 0.25, -1, 1),
+      liquidity: clampNumber(liquidity * 2 - 1, -1, 1),
+      call_put_skew: clampNumber(skew, -1, 1),
+    },
+  };
+}
+
 function publicManifest(row) {
   const featureKeys = normalizeFeatureKeys(parseJson(row.feature_keys_json, []));
   const manifest = parseJson(row.manifest_json, {}) || {};
@@ -249,13 +415,51 @@ function publicManifest(row) {
 
 function modelVersionFromRow(row, versionNumber, total) {
   const parsed = parseStoredModel(row);
+  const comparison = parsed?.comparison && typeof parsed.comparison === "object" ? parsed.comparison : {};
   return {
     ...parsed,
     version: `v${versionNumber}`,
     versionNumber,
     featureCount: Array.isArray(parsed?.features) ? parsed.features.length : 0,
-    isCurrent: versionNumber === total,
+    status: parsed?.status || "archived",
+    comparison,
+    canPromote: Boolean(parsed?.status === "candidate" && comparison?.promotionGate?.passed),
+    isCurrent: Boolean(parsed?.status === "active"),
   };
+}
+
+async function enrichModelComparisons(db, userId, workspace, rows) {
+  const orderedRows = Array.isArray(rows) ? [...rows] : [];
+  const activeRow = orderedRows.find((row) => String(row.status || "") === "active") || null;
+  for (const row of orderedRows) {
+    if (String(row.status || "") !== "candidate" || !activeRow) {
+      continue;
+    }
+    const parsedCandidate = parseStoredModel(row);
+    const parsedActive = parseStoredModel(activeRow);
+    const baseComparison = parsedCandidate?.comparison && typeof parsedCandidate.comparison === "object" ? parsedCandidate.comparison : {};
+    const shadowPairs = await loadShadowPromotionPairs(db, userId, workspace, row, activeRow);
+    const shadowStats = summarizeShadowPromotionPairs(shadowPairs);
+    row.comparison_json = JSON.stringify(
+      buildPromotionComparison(
+        parsedActive,
+        parsedCandidate,
+        {
+          accuracy: baseComparison.activeAccuracy ?? null,
+          brier: baseComparison.activeBrier ?? null,
+          rows: baseComparison.evaluatedRows ?? 0,
+        },
+        {
+          accuracy: baseComparison.candidateAccuracy ?? null,
+          brier: baseComparison.candidateBrier ?? null,
+          rows: baseComparison.evaluatedRows ?? 0,
+        },
+        baseComparison.holdoutWindow || { starts_at: null, ends_at: null },
+        shadowStats,
+      ),
+    );
+  }
+  return orderedRows;
 }
 
 function defaultGameState(defaultManifestId = null) {
@@ -326,8 +530,24 @@ export function buildVersionTimeline(rows) {
   const ordered = [...rows].sort((left, right) =>
     String(left.created_at || left.updated_at).localeCompare(String(right.created_at || right.updated_at)),
   );
+  const activeRow =
+    [...ordered]
+      .reverse()
+      .find((row) => String(row.status || "") === "active") ||
+    ordered[ordered.length - 1] ||
+    null;
+  const activeId = activeRow?.id || null;
   const total = ordered.length;
-  return ordered.map((row, index) => modelVersionFromRow(row, index + 1, total)).reverse();
+  return ordered
+    .map((row, index) => {
+      const version = modelVersionFromRow(row, index + 1, total);
+      return {
+        ...version,
+        status: row.status || (row.id === activeId ? "active" : "archived"),
+        isCurrent: row.id === activeId,
+      };
+    })
+    .reverse();
 }
 
 export function systemFeatureManifestTemplates() {
@@ -420,12 +640,15 @@ export async function importFeatureManifest(env, userId, manifestId) {
   return manifests.find((item) => item.id === manifest.id) || null;
 }
 
-export async function listModelVersions(env, userId, limit = 8) {
-  const rows = await requireDb(env)
-    .prepare("SELECT * FROM models WHERE user_id = ? ORDER BY created_at ASC")
-    .bind(userId)
+export async function listModelVersions(env, userId, limit = 8, workspace = RESEARCH_WORKSPACE_DEMO) {
+  const db = requireDb(env);
+  const selectedWorkspace = normalizeResearchWorkspace(workspace);
+  const rows = await db
+    .prepare("SELECT * FROM models WHERE user_id = ? AND workspace = ? ORDER BY created_at ASC, updated_at ASC")
+    .bind(userId, selectedWorkspace)
     .all();
-  return buildVersionTimeline(rows.results || []).slice(0, limit);
+  const hydrated = await enrichModelComparisons(db, userId, selectedWorkspace, rows.results || []);
+  return buildVersionTimeline(hydrated).slice(0, limit);
 }
 
 export async function seedStarterModelHistory(env, userId, displayName = "Trader") {
@@ -467,11 +690,12 @@ export async function seedStarterModelHistory(env, userId, displayName = "Trader
     };
     await db
       .prepare(
-        "INSERT INTO research_snapshots (id, user_id, symbol, expiration_date, snapshot_at, quote_json, feature_json, created_at) VALUES (?, ?, 'SPY', ?, ?, ?, ?, ?)",
+        "INSERT INTO research_snapshots (id, user_id, workspace, symbol, expiration_date, snapshot_at, quote_json, feature_json, created_at) VALUES (?, ?, ?, 'SPY', ?, ?, ?, ?, ?)",
       )
       .bind(
         snapshotId,
         userId,
+        RESEARCH_WORKSPACE_DEMO,
         "2026-05-15",
         row.created_at,
         JSON.stringify(quote),
@@ -491,11 +715,12 @@ export async function seedStarterModelHistory(env, userId, displayName = "Trader
     const snapshotId = randomBase64Url(18);
     await db
       .prepare(
-        "INSERT INTO research_snapshots (id, user_id, symbol, expiration_date, snapshot_at, quote_json, feature_json, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+        "INSERT INTO research_snapshots (id, user_id, workspace, symbol, expiration_date, snapshot_at, quote_json, feature_json, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
       )
       .bind(
         snapshotId,
         userId,
+        RESEARCH_WORKSPACE_DEMO,
         template.symbol,
         template.expirationDate,
         template.snapshotAt,
@@ -567,11 +792,12 @@ export async function seedStarterModelHistory(env, userId, displayName = "Trader
     const decisionType = row.label === 1 ? "call" : "put";
     await db
       .prepare(
-        "INSERT INTO research_decisions (id, user_id, snapshot_id, model_id, mode, symbol, decision, probability, score, selected_option_symbol, selected_contract_type, selected_entry_mark, call_option_symbol, call_entry_mark, put_option_symbol, put_entry_mark, underlying_entry_price, features_json, rationale_json, created_at, resolved_at) VALUES (?, ?, ?, NULL, 'paper', 'SPY', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        "INSERT INTO research_decisions (id, user_id, workspace, snapshot_id, model_id, mode, symbol, decision, probability, score, selected_option_symbol, selected_contract_type, selected_entry_mark, call_option_symbol, call_entry_mark, put_option_symbol, put_entry_mark, underlying_entry_price, features_json, rationale_json, created_at, resolved_at) VALUES (?, ?, ?, ?, NULL, 'paper', 'SPY', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
       )
       .bind(
         decisionId,
         userId,
+        RESEARCH_WORKSPACE_DEMO,
         entrySnapshotId,
         decisionType,
         probability,
@@ -604,12 +830,13 @@ export async function seedStarterModelHistory(env, userId, displayName = "Trader
     const selectedReturn = row.label === 1 ? 0.19 : 0.17;
     await db
       .prepare(
-        "INSERT INTO research_outcomes (id, decision_id, user_id, entry_snapshot_id, exit_snapshot_id, outcome_label, selected_return, call_return, put_return, underlying_return, score, horizon_minutes, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        "INSERT INTO research_outcomes (id, decision_id, user_id, workspace, entry_snapshot_id, exit_snapshot_id, outcome_label, selected_return, call_return, put_return, underlying_return, score, horizon_minutes, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
       )
       .bind(
         randomBase64Url(18),
         decisionId,
         userId,
+        RESEARCH_WORKSPACE_DEMO,
         entrySnapshotId,
         exitSnapshotId,
         row.label === 1 ? "call_win" : "put_win",
@@ -627,11 +854,12 @@ export async function seedStarterModelHistory(env, userId, displayName = "Trader
       const pnl = Number((((selectedReturn * 1.28) * 100)).toFixed(2));
       await db
         .prepare(
-          "INSERT INTO research_paper_trades (id, user_id, decision_id, snapshot_id, mode, symbol, option_symbol, side, quantity, entry_price, entry_underlying_price, entry_score, status, opened_at, closed_at, exit_snapshot_id, exit_price, pnl, outcome_label) VALUES (?, ?, ?, ?, 'paper', 'SPY', ?, ?, 1, ?, ?, ?, 'closed', ?, ?, ?, ?, ?, ?)",
+          "INSERT INTO research_paper_trades (id, user_id, workspace, decision_id, snapshot_id, mode, symbol, option_symbol, side, quantity, entry_price, entry_underlying_price, entry_score, status, opened_at, closed_at, exit_snapshot_id, exit_price, pnl, outcome_label) VALUES (?, ?, ?, ?, ?, 'paper', 'SPY', ?, ?, 1, ?, ?, ?, 'closed', ?, ?, ?, ?, ?, ?)",
         )
         .bind(
           randomBase64Url(18),
           userId,
+          RESEARCH_WORKSPACE_DEMO,
           decisionId,
           entrySnapshotId,
           decisionType === "call" ? callSymbol : putSymbol,
@@ -653,11 +881,12 @@ export async function seedStarterModelHistory(env, userId, displayName = "Trader
   const noTradeDecisionId = randomBase64Url(18);
   await db
     .prepare(
-      "INSERT INTO research_decisions (id, user_id, snapshot_id, model_id, mode, symbol, decision, probability, score, selected_option_symbol, selected_contract_type, selected_entry_mark, call_option_symbol, call_entry_mark, put_option_symbol, put_entry_mark, underlying_entry_price, features_json, rationale_json, created_at, resolved_at) VALUES (?, ?, ?, NULL, 'shadow', 'SPY', 'no_trade', ?, ?, NULL, NULL, NULL, NULL, NULL, NULL, NULL, ?, ?, ?, ?, ?)",
+      "INSERT INTO research_decisions (id, user_id, workspace, snapshot_id, model_id, mode, symbol, decision, probability, score, selected_option_symbol, selected_contract_type, selected_entry_mark, call_option_symbol, call_entry_mark, put_option_symbol, put_entry_mark, underlying_entry_price, features_json, rationale_json, created_at, resolved_at) VALUES (?, ?, ?, ?, NULL, 'shadow', 'SPY', 'no_trade', ?, ?, NULL, NULL, NULL, NULL, NULL, NULL, NULL, ?, ?, ?, ?, ?)",
     )
     .bind(
       noTradeDecisionId,
       userId,
+      RESEARCH_WORKSPACE_DEMO,
       historicalSnapshotIds[9],
       0.51,
       0.64,
@@ -676,12 +905,13 @@ export async function seedStarterModelHistory(env, userId, displayName = "Trader
     .run();
   await db
     .prepare(
-      "INSERT INTO research_outcomes (id, decision_id, user_id, entry_snapshot_id, exit_snapshot_id, outcome_label, selected_return, call_return, put_return, underlying_return, score, horizon_minutes, created_at) VALUES (?, ?, ?, ?, ?, 'no_trade_win', NULL, 0.03, -0.01, 0.002, 0.92, 1440, ?)",
+      "INSERT INTO research_outcomes (id, decision_id, user_id, workspace, entry_snapshot_id, exit_snapshot_id, outcome_label, selected_return, call_return, put_return, underlying_return, score, horizon_minutes, created_at) VALUES (?, ?, ?, ?, ?, ?, 'no_trade_win', NULL, 0.03, -0.01, 0.002, 0.92, 1440, ?)",
     )
     .bind(
       randomBase64Url(18),
       noTradeDecisionId,
       userId,
+      RESEARCH_WORKSPACE_DEMO,
       historicalSnapshotIds[9],
       historicalSnapshotIds[10],
       STARTER_ROWS[10].created_at,
@@ -699,11 +929,12 @@ export async function seedStarterModelHistory(env, userId, displayName = "Trader
     const modelId = randomBase64Url(18);
     await db
       .prepare(
-        "INSERT INTO models (id, user_id, name, kind, weights_json, metrics_json, features_json, training_rows, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        "INSERT INTO models (id, user_id, workspace, name, kind, weights_json, metrics_json, features_json, training_rows, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
       )
       .bind(
         modelId,
         userId,
+        RESEARCH_WORKSPACE_DEMO,
         config.name,
         trained.kind,
         JSON.stringify({ ...trained.weights, bias: trained.bias }),
@@ -741,11 +972,12 @@ export async function seedStarterModelHistory(env, userId, displayName = "Trader
     const decisionId = randomBase64Url(18);
     await db
       .prepare(
-        "INSERT INTO research_decisions (id, user_id, snapshot_id, model_id, mode, symbol, decision, probability, score, selected_option_symbol, selected_contract_type, selected_entry_mark, call_option_symbol, call_entry_mark, put_option_symbol, put_entry_mark, underlying_entry_price, features_json, rationale_json, created_at) VALUES (?, ?, ?, ?, 'paper', 'SPY', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        "INSERT INTO research_decisions (id, user_id, workspace, snapshot_id, model_id, mode, symbol, decision, probability, score, selected_option_symbol, selected_contract_type, selected_entry_mark, call_option_symbol, call_entry_mark, put_option_symbol, put_entry_mark, underlying_entry_price, features_json, rationale_json, created_at) VALUES (?, ?, ?, ?, ?, 'paper', 'SPY', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
       )
       .bind(
         decisionId,
         userId,
+        RESEARCH_WORKSPACE_DEMO,
         spyTemplate.snapshotId,
         latestModel.id,
         decisionType,
@@ -773,11 +1005,12 @@ export async function seedStarterModelHistory(env, userId, displayName = "Trader
     if (preferredOption) {
       await db
         .prepare(
-          "INSERT INTO research_paper_trades (id, user_id, decision_id, snapshot_id, mode, symbol, option_symbol, side, quantity, entry_price, entry_underlying_price, entry_score, status, opened_at) VALUES (?, ?, ?, ?, 'paper', 'SPY', ?, ?, 1, ?, ?, ?, 'open', ?)",
+          "INSERT INTO research_paper_trades (id, user_id, workspace, decision_id, snapshot_id, mode, symbol, option_symbol, side, quantity, entry_price, entry_underlying_price, entry_score, status, opened_at) VALUES (?, ?, ?, ?, ?, 'paper', 'SPY', ?, ?, 1, ?, ?, ?, 'open', ?)",
         )
         .bind(
           randomBase64Url(18),
           userId,
+          RESEARCH_WORKSPACE_DEMO,
           decisionId,
           spyTemplate.snapshotId,
           preferredOption.optionSymbol,
@@ -810,9 +1043,9 @@ export async function seedStarterModelHistory(env, userId, displayName = "Trader
   for (const event of events) {
     await db
       .prepare(
-        "INSERT INTO research_events (id, user_id, snapshot_id, symbol, title, body, source, created_at) VALUES (?, ?, NULL, ?, ?, ?, ?, ?)",
+        "INSERT INTO research_events (id, user_id, workspace, snapshot_id, symbol, title, body, source, created_at) VALUES (?, ?, ?, NULL, ?, ?, ?, ?, ?)",
       )
-      .bind(randomBase64Url(18), userId, event.symbol, event.title, event.body, event.source, event.created_at)
+      .bind(randomBase64Url(18), userId, RESEARCH_WORKSPACE_DEMO, event.symbol, event.title, event.body, event.source, event.created_at)
       .run();
   }
 
@@ -831,4 +1064,186 @@ export async function seedStarterModelHistory(env, userId, displayName = "Trader
     manifest_id: defaultManifest?.id || null,
   });
   return true;
+}
+
+export async function backfillSeededReplayHistory(env, userId, symbols = []) {
+  const db = requireDb(env);
+  const requestedSymbols = Array.isArray(symbols)
+    ? symbols.map((symbol) => String(symbol || "").trim().toUpperCase()).filter(Boolean).slice(0, 5)
+    : [];
+  const targetSymbols = requestedSymbols.length ? requestedSymbols : latestSnapshotTemplates().map((template) => template.symbol);
+  const templatesBySymbol = new Map(latestSnapshotTemplates().map((template) => [template.symbol, template]));
+  const inserted = {
+    symbols: 0,
+    snapshots: 0,
+    decisions: 0,
+    outcomes: 0,
+    trades: 0,
+  };
+
+  for (const symbol of targetSymbols) {
+    const latestRow = await db
+      .prepare("SELECT * FROM research_snapshots WHERE user_id = ? AND workspace = ? AND symbol = ? ORDER BY created_at DESC LIMIT 1")
+      .bind(userId, RESEARCH_WORKSPACE_DEMO, symbol)
+      .first();
+
+    let baseSnapshot;
+    if (latestRow) {
+      const optionRows = await db
+        .prepare("SELECT * FROM research_option_quotes WHERE snapshot_id = ? ORDER BY strike ASC, contract_type ASC")
+        .bind(latestRow.id)
+        .all();
+      baseSnapshot = {
+        id: latestRow.id,
+        symbol,
+        snapshotAt: latestRow.snapshot_at,
+        expirationDate: latestRow.expiration_date,
+        quote: parseJson(latestRow.quote_json, {}),
+        features: parseJson(latestRow.feature_json, {}),
+        options: (optionRows.results || []).map((row) => ({
+          optionSymbol: row.option_symbol,
+          type: row.contract_type,
+          strike: Number(row.strike),
+          mark: Number(row.mark),
+        })),
+      };
+    } else if (templatesBySymbol.has(symbol)) {
+      baseSnapshot = await insertSyntheticSnapshot(db, userId, quoteTemplateFromSnapshot(templatesBySymbol.get(symbol)), RESEARCH_WORKSPACE_DEMO);
+      inserted.snapshots += 1;
+    } else {
+      continue;
+    }
+
+    const baseTemplate = quoteTemplateFromSnapshot({
+      ...templatesBySymbol.get(symbol),
+      ...baseSnapshot,
+      features: baseSnapshot.features,
+      quote: baseSnapshot.quote,
+      snapshotAt: baseSnapshot.snapshotAt,
+      expirationDate: baseSnapshot.expirationDate,
+    });
+    const patternSet = DEMO_BACKFILL_PATTERNS[symbolHash(symbol) % DEMO_BACKFILL_PATTERNS.length];
+    let currentSnapshot = baseSnapshot;
+    let currentTemplate = baseTemplate;
+
+    for (let index = 0; index < patternSet.length; index += 1) {
+      const pattern = patternSet[index];
+      const nextTemplate = evolveBackfillTemplate(currentTemplate, pattern, index);
+      const nextSnapshot = await insertSyntheticSnapshot(db, userId, nextTemplate, RESEARCH_WORKSPACE_DEMO);
+      inserted.snapshots += 1;
+
+      const callOption =
+        currentSnapshot.options?.find((option) => option.type === "call") ||
+        optionRowsForSnapshot(symbol, currentTemplate.expirationDate, currentTemplate.price, currentTemplate.snapshotAt).find((option) => option.type === "call");
+      const putOption =
+        currentSnapshot.options?.find((option) => option.type === "put") ||
+        optionRowsForSnapshot(symbol, currentTemplate.expirationDate, currentTemplate.price, currentTemplate.snapshotAt).find((option) => option.type === "put");
+      const selectedOption = pattern.decision === "call" ? callOption : pattern.decision === "put" ? putOption : null;
+      const decisionId = randomBase64Url(18);
+      await db
+        .prepare(
+          "INSERT INTO research_decisions (id, user_id, workspace, snapshot_id, model_id, mode, symbol, decision, probability, score, selected_option_symbol, selected_contract_type, selected_entry_mark, call_option_symbol, call_entry_mark, put_option_symbol, put_entry_mark, underlying_entry_price, features_json, rationale_json, created_at, resolved_at) VALUES (?, ?, ?, ?, NULL, 'paper', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        )
+        .bind(
+          decisionId,
+          userId,
+          RESEARCH_WORKSPACE_DEMO,
+          currentSnapshot.id,
+          symbol,
+          pattern.decision,
+          pattern.probability,
+          pattern.score,
+          selectedOption?.optionSymbol || null,
+          selectedOption?.type || null,
+          selectedOption?.mark || null,
+          callOption?.optionSymbol || null,
+          callOption?.mark || null,
+          putOption?.optionSymbol || null,
+          putOption?.mark || null,
+          Number(currentTemplate.price),
+          JSON.stringify(currentTemplate.features),
+          JSON.stringify({
+            engine: "seeded_backfill",
+            summary:
+              pattern.decision === "no_trade"
+                ? "Backfilled demo review favored patience because the expected directional edge stayed too small."
+                : `${pattern.decision === "call" ? "Call" : "Put"} edge backfill created to expand the replay review set for this symbol.`,
+            noTradePressure: pattern.noTradePressure,
+            selectedOptionSymbol: selectedOption?.optionSymbol || null,
+            seeded: true,
+          }),
+          currentTemplate.snapshotAt,
+          nextTemplate.snapshotAt,
+        )
+        .run();
+      inserted.decisions += 1;
+
+      const outcomeLabel =
+        pattern.decision === "call"
+          ? "call_win"
+          : pattern.decision === "put"
+            ? "put_win"
+            : "no_trade_win";
+      await db
+        .prepare(
+          "INSERT INTO research_outcomes (id, decision_id, user_id, workspace, entry_snapshot_id, exit_snapshot_id, outcome_label, selected_return, call_return, put_return, underlying_return, score, horizon_minutes, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        )
+        .bind(
+          randomBase64Url(18),
+          decisionId,
+          userId,
+          RESEARCH_WORKSPACE_DEMO,
+          currentSnapshot.id,
+          nextSnapshot.id,
+          outcomeLabel,
+          pattern.selectedReturn,
+          pattern.callReturn,
+          pattern.putReturn,
+          pattern.underlyingReturn,
+          Number((pattern.decision === "no_trade" ? Math.max(pattern.score, 0.84) : pattern.score).toFixed(4)),
+          90 * (index + 1),
+          nextTemplate.snapshotAt,
+        )
+        .run();
+      inserted.outcomes += 1;
+
+      if (selectedOption && pattern.selectedReturn !== null) {
+        const exitPrice = Number((selectedOption.mark * (1 + pattern.selectedReturn)).toFixed(2));
+        const pnl = Number(((exitPrice - selectedOption.mark) * 100).toFixed(2));
+        await db
+          .prepare(
+            "INSERT INTO research_paper_trades (id, user_id, workspace, decision_id, snapshot_id, mode, symbol, option_symbol, side, quantity, entry_price, entry_underlying_price, entry_score, status, opened_at, closed_at, exit_snapshot_id, exit_price, pnl, outcome_label) VALUES (?, ?, ?, ?, ?, 'paper', ?, ?, ?, 1, ?, ?, ?, 'closed', ?, ?, ?, ?, ?, ?)",
+          )
+          .bind(
+            randomBase64Url(18),
+            userId,
+            RESEARCH_WORKSPACE_DEMO,
+            decisionId,
+            currentSnapshot.id,
+            symbol,
+            selectedOption.optionSymbol,
+            selectedOption.type,
+            selectedOption.mark,
+            currentTemplate.price,
+            pattern.score,
+            currentTemplate.snapshotAt,
+            nextTemplate.snapshotAt,
+            nextSnapshot.id,
+            exitPrice,
+            pnl,
+            pnl >= 0 ? "win" : "loss",
+          )
+          .run();
+        inserted.trades += 1;
+      }
+
+      currentSnapshot = nextSnapshot;
+      currentTemplate = nextTemplate;
+    }
+
+    inserted.symbols += 1;
+  }
+
+  await audit(env, userId, "model.seeded_demo_backfill", inserted);
+  return inserted;
 }

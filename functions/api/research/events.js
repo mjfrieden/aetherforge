@@ -21,11 +21,13 @@ export async function onRequestPost(context) {
   }
 
   try {
+    body.snapshot_workspace = body.snapshot_workspace || body.workspace;
     const event = await addResearchEvent(context.env, auth.session.user.id, body);
     const dashboard = await loadResearchDashboard(context.env, auth.session.user.id, {
       mode: body.mode === "shadow" ? "shadow" : "paper",
       symbol: body.symbol || event.symbol,
       initialBalance: await loadInitialBalance(context.env, auth.session.user.id),
+      workspace: event.workspace,
     });
     return json({ ok: true, event, dashboard });
   } catch (error) {

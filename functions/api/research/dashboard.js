@@ -1,14 +1,8 @@
 import { requireSession } from "../../_lib/auth.js";
 import { json } from "../../_lib/http.js";
-import {
-  DEFAULT_WATCHLIST,
-  buildReplaySnapshot,
-  evaluateOpenResearch,
-  loadInitialBalance,
-  loadResearchDashboard,
-} from "../../_lib/research.js";
-import { ensureSystemFeatureManifests, seedStarterModelHistory } from "../../_lib/model_forge.js";
+import { DEFAULT_WATCHLIST, loadInitialBalance, loadResearchDashboard } from "../../_lib/research.js";
 import { loadTradierAccount } from "../../_lib/tradier.js";
+import { researchWorkspaceFromAccount } from "../../_lib/research_workspace.js";
 
 export async function onRequestGet(context) {
   const auth = await requireSession(context);
@@ -26,34 +20,22 @@ export async function onRequestGet(context) {
   const mode = requestUrl.searchParams.get("mode") === "shadow" ? "shadow" : "paper";
   const selectedSymbol = requestUrl.searchParams.get("symbol") || symbols[0];
   const initialBalance = await loadInitialBalance(context.env, auth.session.user.id);
-
-  await ensureSystemFeatureManifests(context.env);
   const account = await loadTradierAccount(context.env, auth.session.user.id);
-  const seededDemo = !account
-    ? await seedStarterModelHistory(context.env, auth.session.user.id, auth.session.user.display_name || "Trader")
-    : false;
-  if (account) {
-    for (const symbol of symbols) {
-      try {
-        const snapshot = await buildReplaySnapshot(context.env, auth.session.user.id, account, symbol);
-        await evaluateOpenResearch(context.env, auth.session.user.id, snapshot);
-      } catch {
-        // Keep the dashboard usable even if one symbol fails to refresh.
-      }
-    }
-  }
+  const workspace = researchWorkspaceFromAccount(account);
 
   const dashboard = await loadResearchDashboard(context.env, auth.session.user.id, {
     mode,
     symbol: selectedSymbol,
     initialBalance,
+    workspace,
   });
 
   if (!account && !dashboard.watchlist.length) {
     return json({
       ok: true,
       connected: false,
-      message: "Connect Tradier to begin building the Cumulonimbus replay store.",
+      workspace,
+      message: "Demo workspace is empty. Load demo history for practice or connect Tradier to start the live replay store.",
       dashboard,
     });
   }
@@ -61,11 +43,10 @@ export async function onRequestGet(context) {
   return json({
     ok: true,
     connected: Boolean(account),
+    workspace,
     message: account
       ? undefined
-      : seededDemo
-        ? "Demo model history loaded. Connect Tradier whenever you want live replay snapshots."
-        : "Demo model history is available while you refine features and compare versions.",
+      : "Demo workspace active. Synthetic history stays isolated from live training and the leaderboard.",
     dashboard,
   });
 }

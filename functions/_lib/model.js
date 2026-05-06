@@ -145,6 +145,32 @@ export function trainLogisticModel(samples, options = {}) {
   };
 }
 
+export function scoreStoredModel(model, samples) {
+  const featureKeys =
+    Array.isArray(model?.features) && model.features.length
+      ? model.features
+      : RESEARCH_FEATURES;
+  const rows = samples
+    .map((sample) => normalizeRow(sample, featureKeys))
+    .filter((row) => row.label === 0 || row.label === 1);
+
+  if (!rows.length) {
+    return {
+      accuracy: null,
+      brier: null,
+      rows: 0,
+    };
+  }
+
+  const predictions = rows.map((row) => predictWithWeights(model, row, featureKeys).probability);
+  const metrics = metricsFromPredictions(rows, predictions);
+  return {
+    accuracy: metrics.accuracy,
+    brier: metrics.brier,
+    rows: rows.length,
+  };
+}
+
 export function predictWithWeights(model, rawFeatures, selectedFeatures = null) {
   const featureKeys =
     selectedFeatures && selectedFeatures.length
@@ -182,6 +208,13 @@ export function parseStoredModel(row) {
     metrics: JSON.parse(row.metrics_json),
     features: JSON.parse(row.features_json),
     training_rows: row.training_rows,
+    status: row.status || "active",
+    promoted_from_model_id: row.promoted_from_model_id || null,
+    promotion_reason: row.promotion_reason || null,
+    comparison: JSON.parse(row.comparison_json || "{}"),
+    workspace: row.workspace || "demo",
+    activated_at: row.activated_at || row.updated_at,
+    archived_at: row.archived_at || null,
     created_at: row.created_at,
     updated_at: row.updated_at,
   };

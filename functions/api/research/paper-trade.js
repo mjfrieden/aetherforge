@@ -26,6 +26,7 @@ export async function onRequestPost(context) {
       mode: body.mode === "shadow" ? "shadow" : "paper",
       symbol: body.symbol || trade.symbol,
       initialBalance: await loadInitialBalance(context.env, auth.session.user.id),
+      workspace: trade.workspace,
     });
     return json({ ok: true, trade, dashboard });
   } catch (error) {

@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { predictWithWeights, trainLogisticModel } from "../functions/_lib/model.js";
+import { predictWithWeights, scoreStoredModel, trainLogisticModel } from "../functions/_lib/model.js";
 
 const replayRows = [
   { created_at: "2026-04-01T14:30:00.000Z", change_pct: 0.62, intraday_range: 0.15, atm_iv: -0.25, liquidity: 0.72, call_put_skew: 0.4, label: 1 },
@@ -39,4 +39,12 @@ test("predictWithWeights classifies bounded replay probabilities", () => {
   assert.ok(prediction.probability >= 0);
   assert.ok(prediction.probability <= 1);
   assert.ok(["call_edge", "put_edge", "no_trade"].includes(prediction.class));
+});
+
+test("scoreStoredModel evaluates an existing model on replay rows", () => {
+  const model = trainLogisticModel(replayRows);
+  const metrics = scoreStoredModel(model, replayRows);
+  assert.equal(metrics.rows, replayRows.length);
+  assert.ok(metrics.accuracy !== null && metrics.accuracy >= 0 && metrics.accuracy <= 1);
+  assert.ok(metrics.brier !== null && metrics.brier >= 0 && metrics.brier <= 1);
 });

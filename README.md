@@ -11,6 +11,7 @@ Public GitHub repo: https://github.com/mjfrieden/aetherforge
 ## Project Notes
 
 The lineage and earlier sibling-project evaluation live in [docs/project-evaluation.md](docs/project-evaluation.md). The user-facing product name is now simply Cumulonimbus.
+The concrete roadmap for outgrowing Orographic lives in [docs/beat-orographic-roadmap.md](docs/beat-orographic-roadmap.md).
 
 ## Security Model
 
